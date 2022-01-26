@@ -80,6 +80,31 @@ def woe_discrete(df, discrete_variable_name, df_good_bad_variable):
     df['IV'] = df['IV'].sum()
     return df
 
+#***************************************************************************#
+#sec.5 L28: Visualizing results
+import matplotlib.pyplot as plt
+import seaborn as sns
+sns.set() #overwrite the default matplotlib look. Think of it like a skin plt
+
+#matplotlib works well with np.array but not df and strings. as well as scipy
+def plot_by_WoE(df_WoE, roation_of_axis_labels = 0, width=15, height=7 ):
+    x = np.array(df_WoE.iloc[:,0].apply(str)) #Convert values into srting, then convert to an array.
+    #x = df_WoE.iloc[:, 0].apply(str)  # Convert values into srting, then convert to an array.
+    y  = df_WoE['WoE'] #its a numeric variable so no need to do anything about it.
+    plt.figure(figsize=(width,height)) #specify dimension of the chart.  (figsize = (Width(X), Height(Y)
+    # now plot the data. Mark o for each point, tied by a dotted line, with color black(k)
+    plt.plot(x,y, marker = 'o', linestyle='--', color='k')
+    plt.xlabel( df_WoE.columns[0])
+    plt.ylabel('Weight of Evidence')
+    plt.title(str("Weight of Evidence by " + (df_WoE.columns[0])))
+    plt.xticks(rotation = roation_of_axis_labels)
+    #plt.show()
+
+
+#CALL the plot function
+# plot_by_WoE(df1_grade)
+
+#***************************************************************************#
 # FUNCTION CALL:woe_discrete(dfs, discrete_variable_name, df_good_bad_variable):
 # variables (df input data, independent variable(X), dependent variable(Target/Y)
 
@@ -108,29 +133,6 @@ df1_grade = woe_discrete(df_inputs_train_prep,'grade',df_targets_train_prep)
 #   df1_grade.to_csv(file_name2)
 #   print('DataFrame is written to CSV File successfully.')
 
-#***************************************************************************#
-#sec.5 L28: Visualizing results
-import matplotlib.pyplot as plt
-import seaborn as sns
-sns.set() #overwrite the default matplotlib look. Think of it like a skin plt
-
-#matplotlib works well with np.array but not df and strings. as well as scipy
-def plot_by_WoE(df_WoE, roation_of_axis_labels = 0, width=15, height=7 ):
-    x = np.array(df_WoE.iloc[:,0].apply(str)) #Convert values into srting, then convert to an array.
-    #x = df_WoE.iloc[:, 0].apply(str)  # Convert values into srting, then convert to an array.
-    y  = df_WoE['WoE'] #its a numeric variable so no need to do anything about it.
-    plt.figure(figsize=(width,height)) #specify dimension of the chart.  (figsize = (Width(X), Height(Y)
-    # now plot the data. Mark o for each point, tied by a dotted line, with color black(k)
-    plt.plot(x,y, marker = 'o', linestyle='--', color='k')
-    plt.xlabel( df_WoE.columns[0])
-    plt.ylabel('Weight of Evidence')
-    plt.title(str("Weight of Evidence by " + (df_WoE.columns[0])))
-    plt.xticks(rotation = roation_of_axis_labels)
-    #plt.show()
-
-
-#CALL the plot function
-plot_by_WoE(df1_grade)
 
 #***************************************************************************#
 #sec.5 L29: Data Prep: Preprocessing Discrete Variables. creating dummies part I
@@ -138,10 +140,13 @@ plot_by_WoE(df1_grade)
 # code: CreditRiskModelingPreparation5.9.py
 
 df2_home_own = woe_discrete(df_inputs_train_prep,'home_ownership',df_targets_train_prep)
-plot_by_WoE(df2_home_own)
+# plot_by_WoE(df2_home_own)
 
 # combine such underrepresented categories that are similar
 # Combine, OTHER, NONE, RENT, and ANY (WoE as very low). OWN and MORTGAGE will be in a separate dummy var
+df_inputs_train_prep['home_ownership:RENT_OTHER_NONE_ANY'] = sum([df_inputs_train_prep['home_ownership:RENT'], df_inputs_train_prep['home_ownership:OTHER'],
+                                                            df_inputs_train_prep['home_ownership:NONE'], df_inputs_train_prep['home_ownership:ANY']])
+
 
 #sec.5 L30: Data Prep: Preprocessing Discrete Variables. creating dummies part I
 # address state - independent variable (x)
@@ -151,43 +156,74 @@ plot_by_WoE(df2_home_own)
 # df_addr_sorted = df_inputs_train_prep['addr_state'].sort_values().unique()
 # df_addr_sorted = df_inputs_train_prep['addr_state'].unique().sort_values() # does not work. sort first, then unique
 
+df3_addr_st = woe_discrete(df_inputs_train_prep,'addr_state',df_targets_train_prep)
+
 # if column 'addr_state:ND' exist, leave it, else create a new column and set it to 0.
 if ['addr_state:ND'] in df_inputs_train_prep.columns.values:
     pass
 else:
     df_inputs_train_prep['addr_state:ND'] = 0
 
-df3_addr_st = woe_discrete(df_inputs_train_prep,'addr_state',df_targets_train_prep)
-plot_by_WoE(df3_addr_st)
-#remove the first and last two elements
-plot_by_WoE(df3_addr_st.iloc[2:-2, :])
-#check the remaining states
-plot_by_WoE(df3_addr_st.iloc[6:-6, :])
-
-
+# COARSE CLASSING
+# visualize data and group together
+# plot_by_WoE(df3_addr_st)
+# #remove the first and last two elements
+# plot_by_WoE(df3_addr_st.iloc[2:-2, :])
+# #check the remaining states
+# plot_by_WoE(df3_addr_st.iloc[6:-6, :])
 
 #***************************************************************************#
 #sec.5 L30: Data Prep: Preprocessing Discrete Variables. creating dummies part II
 # code: CreditRiskModelingPreparation5.10.py
 
-#create copy
-df_inputs_prepr= df_inputs_train_prep
-df_inputs_prepr.shape #(373028, 208)
+# Check shape
+# df_inputs_train_prep.shape #(373028, 208)
 
 #creates new column and field with boolean 1 or 0
-df_inputs_prepr['addr_state:ND_NE_IA_NV_FL_HI_AL'] = sum([df_inputs_prepr['addr_state:ND'], df_inputs_prepr['addr_state:NE'],
-                                                         df_inputs_prepr['addr_state:IA'], df_inputs_prepr['addr_state:NV'],
-                                                         df_inputs_prepr['addr_state:FL'], df_inputs_prepr['addr_state:HI'],
-                                                         df_inputs_prepr['addr_state:AL']])
+df_inputs_train_prep['addr_state:ND_NE_IA_NV_FL_HI_AL'] = sum([df_inputs_train_prep['addr_state:ND'], df_inputs_train_prep['addr_state:NE'],
+                                                         df_inputs_train_prep['addr_state:IA'], df_inputs_train_prep['addr_state:NV'],
+                                                         df_inputs_train_prep['addr_state:FL'], df_inputs_train_prep['addr_state:HI'],
+                                                         df_inputs_train_prep['addr_state:AL']])
 
-df_inputs_prepr['addr_state:NV'].sum()
-df_inputs_prepr['addr_state:ND_NE_IA_NV_FL_HI_AL'].sum()
-df_inputs_prepr['addr_state:ND_NE_IA_NV_FL_HI_AL'].
+df_inputs_train_prep['addr_state:NM_VA'] = sum([df_inputs_train_prep['addr_state:NM'], df_inputs_train_prep['addr_state:VA']])
 
+df_inputs_train_prep['addr_state:OK_TN_MO_LA_MD_NC'] = sum([df_inputs_train_prep['addr_state:OK'], df_inputs_train_prep['addr_state:TN'],
+                                              df_inputs_train_prep['addr_state:MO'], df_inputs_train_prep['addr_state:LA'],
+                                              df_inputs_train_prep['addr_state:MD'], df_inputs_train_prep['addr_state:NC']])
+
+df_inputs_train_prep['addr_state:UT_KY_AZ_NJ'] = sum([df_inputs_train_prep['addr_state:UT'], df_inputs_train_prep['addr_state:KY'],
+                                              df_inputs_train_prep['addr_state:AZ'], df_inputs_train_prep['addr_state:NJ']])
+
+df_inputs_train_prep['addr_state:AR_MI_PA_OH_MN'] = sum([df_inputs_train_prep['addr_state:AR'], df_inputs_train_prep['addr_state:MI'],
+                                              df_inputs_train_prep['addr_state:PA'], df_inputs_train_prep['addr_state:OH'],
+                                              df_inputs_train_prep['addr_state:MN']])
+
+df_inputs_train_prep['addr_state:RI_MA_DE_SD_IN'] = sum([df_inputs_train_prep['addr_state:RI'], df_inputs_train_prep['addr_state:MA'],
+                                              df_inputs_train_prep['addr_state:DE'], df_inputs_train_prep['addr_state:SD'],
+                                              df_inputs_train_prep['addr_state:IN']])
+
+df_inputs_train_prep['addr_state:GA_WA_OR'] = sum([df_inputs_train_prep['addr_state:GA'], df_inputs_train_prep['addr_state:WA'],
+                                              df_inputs_train_prep['addr_state:OR']])
+
+df_inputs_train_prep['addr_state:WI_MT'] = sum([df_inputs_train_prep['addr_state:WI'], df_inputs_train_prep['addr_state:MT']])
+
+df_inputs_train_prep['addr_state:IL_CT'] = sum([df_inputs_train_prep['addr_state:IL'], df_inputs_train_prep['addr_state:CT']])
+
+df_inputs_train_prep['addr_state:KS_SC_CO_VT_AK_MS'] = sum([df_inputs_train_prep['addr_state:KS'], df_inputs_train_prep['addr_state:SC'],
+                                              df_inputs_train_prep['addr_state:CO'], df_inputs_train_prep['addr_state:VT'],
+                                              df_inputs_train_prep['addr_state:AK'], df_inputs_train_prep['addr_state:MS']])
+
+df_inputs_train_prep['addr_state:WV_NH_WY_DC_ME_ID'] = sum([df_inputs_train_prep['addr_state:WV'], df_inputs_train_prep['addr_state:NH'],
+                                              df_inputs_train_prep['addr_state:WY'], df_inputs_train_prep['addr_state:DC'],
+                                              df_inputs_train_prep['addr_state:ME'], df_inputs_train_prep['addr_state:ID']])
+
+
+#***************************************************************************#
+# TEMP DELETE THIS
 # name of excel file
 file_name = 'DataFrameExport.xlsx'
 # saving tp excel. Note: requires openpyxl package installed
-df_inputs_prepr[['id','grade','home_ownership','addr_state','addr_state:ND','addr_state:NE','addr_state:IA','addr_state:NV','addr_state:FL','addr_state:HI','addr_state:AL','addr_state:ND_NE_IA_NV_FL_HI_AL']].to_excel(file_name)
+df_inputs_train_prep[['id','grade','home_ownership','addr_state','addr_state:ND','addr_state:NE','addr_state:IA','addr_state:NV','addr_state:FL','addr_state:HI','addr_state:AL','addr_state:ND_NE_IA_NV_FL_HI_AL']].to_excel(file_name)
 print('DataFrame is written to Excel File successfully.')
 
 import os
