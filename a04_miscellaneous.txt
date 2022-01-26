@@ -1,0 +1,71 @@
+
+# A.get current working directory and change directory
+# B. CONVERT Jupyter(.ipynb) to Python(.py)
+# C. find and replace (i.e. remove part) with nothing
+
+#------------------------------------------------------
+# A.get current working directory and change directory
+import os
+cwd = os.getcwd()
+print(cwd)
+# main_path = "D:\al_files\PycharmProjects\Python\CreditRiskModelingPython2020"
+
+#in cmd line, change dir to ipynb files
+#> cd d:\al_files\PycharmProjects\Python\CreditRiskModelingPython2020\temp
+
+#chagnge working directory
+os.chdir(cwd + '\\temp')
+cwd = os.getcwd()
+print(cwd)
+
+#------------------------------------------------------
+# B. CONVERT Jupyter(.ipynb) to Python(.py)
+#url: https://medium.com/@researchplex/the-easiest-way-to-convert-jupyter-ipynb-to-python-py-912e39f16917
+
+#Install ipython libraries (Of course, you can skip if already installed.)
+# pip install ipython
+# pip install nbconvert
+
+#Convert single file
+# NOTE: ipython nbconvert is deprectiated, use jupyter nbconvert
+# ex.  jupyter nbconvert file.ipynb --to python
+# jupyter nbconvert CreditRiskModelingPreparation5.2.ipynb --to python
+
+#Convert multiple files
+jupyter nbconvert CreditRiskModelingPreparation4.1.ipynb CreditRiskModelingPreparation4.2.ipynb CreditRiskModelingPreparation4.3.ipynb CreditRiskModelingPreparation4.4.ipynb CreditRiskModelingPreparation4.5.ipynb CreditRiskModelingPreparation4.6.ipynb --to python
+
+jupyter nbconvert CreditRiskModelingPreparation5.8.ipynb CreditRiskModelingPreparation5.9.ipynb CreditRiskModelingPreparation5.10.ipynb CreditRiskModelingPreparation5.11.ipynb CreditRiskModelingPreparation5.12.ipynb CreditRiskModelingPreparation5.13.ipynb CreditRiskModelingPreparation5.14.ipynb CreditRiskModelingPreparation5.15.ipynb CreditRiskModelingPreparation5.16.ipynb CreditRiskModelingPreparation5.18.ipynb CreditRiskModelingPreparation5.20.ipynb --to python
+
+jupyter nbconvert CreditRiskModelingPreparation5.17.ipynb --to python
+
+#------------------------------------------------------
+# C. Clean up jupyte lef over codes. find and replace (i.e. remove part) with nothing
+#1----------
+
+# In[ ]:
+
+
+#2---------
+ #
+#3---------
+##
+#4---------
+
+#---------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

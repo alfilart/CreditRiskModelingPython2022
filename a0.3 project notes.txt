@@ -1,0 +1,10 @@
+
+
+
+Github: 
+files to track
+-all in root cwd
+
+folders:
+/data
+/learning_resources

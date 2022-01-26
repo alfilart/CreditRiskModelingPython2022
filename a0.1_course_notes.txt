@@ -1,0 +1,104 @@
+# a0.1_course_notes
+
+Project name: CreditRiskModelingPython2020
+Git Repo: https://github.com/alfilart/CreditRiskModelingPython2020
+
+GitHub: alfilart@g / Sh...23!@
+kaggle: alfilart@g / google sign-in
+
+#*********************************
+# TASKS - TO DO LIST
+#*********************************
+1) Map variables in _ to 1.1 LCDataDictionary.xlsx
+   in  Documents\02.2 Learning Python\DataSets\LendingClubLoanData
+-create folder 'data' and copy:
+    LCDataDictionary.xlsx
+    loan_data_2007_2014.csv
+    loan_data_2007_2014 - backup.csv
+    us-state-codes.csv
+
+1) do scratch files
+    s02_data_exploration -using iris dataset. copy a1.1 data exploration.py, then del
+    s03_data_visualization -using iris dataset and kaggle example. copy a1.2 data visualization.py
+    s01_import_export_data - update to copy of a1_importing_data.py and a4.0_importing_data.py and a4.1_importing_data_w_comments.py
+
+    s06_sql_to_pandas - copy a0.1 SQL to Pandas.py then delete file
+    s05_sql_server_db_connect - copy a0.3 SQL Server connect and Pandas.py, then del
+
+
+
+
+#*********************************
+# PROJECT PATHS / DIRECTORIES
+#*********************************
+# File path:
+D:\al_files\PycharmProjects\Python\CreditRiskModelingPython2020\temp
+
+# RAW data path
+C:\Users\alfil\iCloudDrive\Documents\02.2 Learning Python\DataSets\LendingClubLoanData
+loan_data_2007_2014.csv = raw data set
+
+#*********************************
+#SECTION 4: General Preprocessing - Independent Variables Used
+#*********************************
+## Preprocessing of Continuous variables
+emp_length -> emp_length_int
+earliest_cr_line -> mths_since_earliest_cr_line
+term -> term_int
+issue_d -> mths_since_issue_d
+
+## Preprocessing Discrete variables
+grade
+sub_grade
+home_ownership
+verification_status
+loan_status
+purpose
+addr_state
+initial_list_status
+
+# Others:  Check for missing values and clean
+total_rev_hi_lim
+annual_inc
+mths_since_earliest_cr_line *
+acc_now_delinq
+total_acc
+pub_rec
+open_acc
+inq_last_6mths
+delinq_2yrs
+emp_length_int *
+
+#*********************************
+# LESSON TO CODE MAP
+#*********************************
+#SECTION 4: General Preprocessing
+#4.15  code= CreditRiskModelingPreparation4.1.py
+#4.16  code= CreditRiskModelingPreparation4.2.py
+#4.17  code= CreditRiskModelingPreparation4.3.py
+#4.18  Preprocessing few discrete variables  code= CreditRiskModelingPreparation4.4.py
+#4.19  code= CreditRiskModelingPreparation4.5.py
+#4.20  code= CreditRiskModelingPreparation4.6.py #Complete Sec.4
+
+#--------------------------------
+#SECTION 5: PD Model: Data Preparation
+#5.22 code = CreditRiskModelingPreparation5.2.py
+#5.25 code = CreditRiskModelingPreparation5.5.py
+#5.26 code = CreditRiskModelingPreparation5.6.py
+#5.27 code = CreditRiskModelingPreparation5.7.py
+#5.28 code = CreditRiskModelingPreparation5.8.py
+#5.29 code = CreditRiskModelingPreparation5.9.py
+#5.30 code = CreditRiskModelingPreparation5.10.py
+#5.31 code = CreditRiskModelingPreparation5.11.py
+#5.32 code = CreditRiskModelingPreparation5.12.py
+#5.33 code = CreditRiskModelingPreparation5.13.py
+#5.34 code = CreditRiskModelingPreparation5.14.py
+#5.35 code = CreditRiskModelingPreparation5.15.py
+#5.36 code = CreditRiskModelingPreparation5.16.py
+#5.37 code = CreditRiskModelingPreparation5.17.py
+#5.38 code = CreditRiskModelingPreparation5.18.py
+#5.39 code = CreditRiskModelingPreparation5.All.py #Complete Sec.5
+#--------------------------------
+
+
+
