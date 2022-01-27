@@ -6,9 +6,16 @@ import pandas as pd
 pd.set_option('display.max_columns', None)
 # to go back to default value  pd.reset_option(“max_columns”)
 
-file_path = r'C:\Users\alfil\iCloudDrive\Documents\02.2 Learning Python\DataSets\LendingClubLoanData'
-file_name_import = r'\loan_data_2007_2014_clean.csv'
-loan_data = pd.read_csv(file_path + file_name_import, low_memory=False)
+#from FEATHER
+#file_path = r'C:\Users\alfil\iCloudDrive\Documents\02.2 Learning Python\DataSets\LendingClubLoanData'
+file_name_import = 'data/loan_data_2007_2014_clean.feather'
+loan_data = pd.read_feather(file_name_import)
+
+# from CSV
+# file_path = r'C:\Users\alfil\iCloudDrive\Documents\02.2 Learning Python\DataSets\LendingClubLoanData'
+# file_name_import = r'\loan_data_2007_2014_clean.csv'
+# loan_data = pd.read_csv(file_path + file_name_import, low_memory=False)
+
 
 # Data Exploration
 # See script a1.1 data exploration.py

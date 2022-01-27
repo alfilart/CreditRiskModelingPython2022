@@ -158,6 +158,13 @@ file_name = 'data/loan_data_2007_2014_clean.csv'
 loan_data.to_csv(file_name)
 print(f'DataFrame {dataframe_name} is written to CSV File = {file_name} successfully.')
 
+# Save data as feather file format
+# NOTE: package pyarrow required
+dataframe_name = 'loan_data'
+file_name = 'data/loan_data_2007_2014_clean.feather'
+loan_data.to_feather(file_name)
+print(f'DataFrame {dataframe_name} is written to CSV File = {file_name} successfully.')
+
 # ---- END --------
 '''
 #Continous ?
