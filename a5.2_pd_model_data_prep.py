@@ -1,75 +1,48 @@
-#Calculate WoE and Information Value for the independent variables (X)
+# Calculate WoE and Information Value for the independent variables (X)
+#
+# # For continuous variable to convert into discrete/categorical, we use:
+# #    Fine Classsing = split data into bucket ranges, equally spaced interval
+# #    Coarse Classing = further split it according to knowledge of data (ex. WoE = Weight of Evidence,
 
 import numpy as np
 import pandas as pd
-#set option to display all columns
-pd.set_option('display.max_columns', None)
-# to go back to default value  pd.reset_option(“max_columns”)
+import matplotlib.pyplot as plt
+import seaborn as sns
+sns.set() #overwrite the default matplotlib look. Think of it like a skin plt
 
-#from FEATHER
-#file_path = r'C:\Users\alfil\iCloudDrive\Documents\02.2 Learning Python\DataSets\LendingClubLoanData'
+#Import data (cleaned) from .FEATHER
 file_name_import = 'data/loan_data_2007_2014_clean.feather'
 loan_data = pd.read_feather(file_name_import)
 
-# from CSV
-# file_path = r'C:\Users\alfil\iCloudDrive\Documents\02.2 Learning Python\DataSets\LendingClubLoanData'
-# file_name_import = r'\loan_data_2007_2014_clean.csv'
-# loan_data = pd.read_csv(file_path + file_name_import, low_memory=False)
+print('loan_data.shape = ' + str(loan_data.shape))
 
+#****************************************************************************
+# Section 5: Data Preparation for PD model. Chp 25 and up
 
-# Data Exploration
-# See script a1.1 data exploration.py
-
-#****************************************
-# Data Preparation for PD model  . Section 5, video 25 and up
-#****************************************
-#Dependent variable preprocessing. Non-default/good=1 Default/bad=0
-#create new column (numeric/boolean) based on loan_status
+# Y dependent var preprocessing. Y= a + bX; equation  Yi = f(X, beta) + Ei (error term)
+# Create new column (numeric/boolean) based on loan_status. Non-default/good=1 Default/bad=0.
 loan_data['good_bad'] = np.where(loan_data['loan_status'].isin(['Charged Off', 'Default',
                                                                'Does not meet the credit policy. Status:Charged Off',
                                                                'Late (31-120 days)']), 0, 1)
-
-# For continuous variable to convert into discrete/categorical, we use:
-#    Fine Classsing = split data into bucket ranges, equally spaced interval
-#    Coarse Classing = further split it according to knowledge of data (ex. WoE = Weight of Evidence,
-
-#-----------------------------------------
-# Splitting Data into Train and Test sets using sklearn
-# inputs_train, targets_train / inputs_test, targets_test
+# Split Data into Train and Test sets using sklearn
+# set test_size= 0.2, therefore 80/20 split train/test. Dfaults is 75/25
+# set random_state = 42 (to have stable results,). Each run of train_test_split, sklearn shuffles the deck, therefore give different results.
 
 from sklearn.model_selection import train_test_split
 
-#method train_test_split(parmeters df inputs, df targets)
-#this defaults to 75% train and 25% test. but we want 80% train and 20% test
-# set test_size= 0.2 (therefore train is 0.8), random_state = 42 *each time we run train_test_split, sklearn shuffles the deck and therefore give different results. to have stable results, set shuffle to a constant, ex random_state = 42
 loan_data_inputs_train, loan_data_inputs_test, loan_data_targets_train, loan_data_targets_test \
     = train_test_split(loan_data.drop('good_bad', axis=1), loan_data['good_bad'], test_size= 0.2, random_state = 42)
+print('loan_data_inputs_train.shape = ' + str(loan_data_inputs_train.shape))
+print('loan_data_inputs_test.shape = ' + str(loan_data_inputs_test.shape))
 
-#check shape of the df's
-# loan_data_inputs_train.shape   # (373028, 207) #Row, Columns
-# loan_data_targets_train.shape  #(373028,)
-# loan_data_inputs_test.shape    #(93257, 207) /  # loan_data_targets_test.shape   #(93257,)
 #-----------------------------------------
 # Data Preparation: load Training data: loan_data_inputs_train, loan_data_targets_train
-# Prep df to calculate WoE and IV   / # REF: Section 5, video 26 : code sample 5-6
-#-----------------------------------------
-# create a working df for preprocessing.
+# create df for preprocessing.  calculate WoE and IV   / # REF: Section 5, video 26
 df_inputs_train_prep = loan_data_inputs_train
 df_targets_train_prep = loan_data_targets_train
-# df_inputs_train_prep['grade'].unique()
-
-# name of excel file
-file_name = 'temp/df_inputs_train_prep.csv'
-df_inputs_train_prep[['id','grade','home_ownership','addr_state']].head()
-df_inputs_train_prep.iloc[:10].to_csv(file_name)
-df_inputs_train_prep[:20,['id','grade','home_ownership','addr_state']]
-df_inputs_train_prep[['id','grade','home_ownership','addr_state']].to_csv(file_name)
-
-
 
 #***************************************************************************#
-# Ref: S5.27  Data preparation. Preprocessing discrete variables: automating calculations
-
+#  Preprocessing DISCRETE variables: automating calculations of WoE for discrete vars. Ref: S5.27
 def woe_discrete(df, discrete_variable_name, df_good_bad_variable):
     # get column from inputs df and good_bad column from Targets df. merge the two df.
     df = pd.concat([df[discrete_variable_name], df_good_bad_variable], axis=1)
@@ -97,103 +70,48 @@ def woe_discrete(df, discrete_variable_name, df_good_bad_variable):
     return df
 
 #***************************************************************************#
-#sec.5 L28: Visualizing results
-import matplotlib.pyplot as plt
-import seaborn as sns
-sns.set() #overwrite the default matplotlib look. Think of it like a skin plt
-
-#matplotlib works well with np.array but not df and strings. as well as scipy
+# Visualizing results. sec.5 L28:
+#matplotlib works well with np.array but not df and strings. Same goes for scipy
 def plot_by_WoE(df_WoE, roation_of_axis_labels = 0, width=15, height=7 ):
-    x = np.array(df_WoE.iloc[:,0].apply(str)) #Convert values into srting, then convert to an array.
-    #x = df_WoE.iloc[:, 0].apply(str)  # Convert values into srting, then convert to an array.
-    y  = df_WoE['WoE'] #its a numeric variable so no need to do anything about it.
-    plt.figure(figsize=(width,height)) #specify dimension of the chart.  (figsize = (Width(X), Height(Y)
+    x = np.array(df_WoE.iloc[:,0].apply(str)) # Convert values into srting, then convert to an array.
+    y  = df_WoE['WoE'] # its a numeric variable so no need to do anything about it.
+    plt.figure(figsize=(width,height)) # specify dimension of the chart.  (figsize = (Width(X), Height(Y)
+
     # now plot the data. Mark o for each point, tied by a dotted line, with color black(k)
     plt.plot(x,y, marker = 'o', linestyle='--', color='k')
     plt.xlabel( df_WoE.columns[0])
     plt.ylabel('Weight of Evidence')
     plt.title(str("Weight of Evidence by " + (df_WoE.columns[0])))
     plt.xticks(rotation = roation_of_axis_labels)
-    #plt.show()
 
-
-#CALL the plot function
+# Calling the plot function example:
 # plot_by_WoE(df1_grade)
 
 #***************************************************************************#
-# FUNCTION CALL:woe_discrete(dfs, discrete_variable_name, df_good_bad_variable):
-# variables (df input data, independent variable(X), dependent variable(Target/Y)
+# Calculate WoE for the x vars. Call function: woe_discrete(df, discrete_var_name(x), df_target_var(Y))
 
 df1_grade = woe_discrete(df_inputs_train_prep,'grade',df_targets_train_prep)
-
-#   df2 = woe_discrete(df_inputs_train_prep,'addr_state',df_targets_train_prep)
-#   df3 = woe_discrete(df_inputs_train_prep,'purpose',df_targets_train_prep)
-
-#***************************************************************************#
-#summarize indep variables and IF in a table. Create a List and convert to a df
-#note: never grow a df! First, accumulate data in a list then create the df
-#see: https://www.geeksforgeeks.org/different-ways-to-create-pandas-dataframe/
-#   c0 = ['grade','addr_state','purpose']
-#   c1 = [df1_grade['IV'].iloc[0],df2['IV'].iloc[0],df3['IV'].iloc[0]]
-#   l = list(zip(c0,c1))
-#   df_IF = pd.DataFrame(data=l, columns=['ind_var','IF'])
-#   df_IF.dtypes
-#***************************************************************************#
-# name of excel file
-#   file_name = 'DataFrameExport.xlsx'
-#   # saving tp excel. Note: requires openpyxl package installed
-#   df1_grade.to_excel(file_name)
-#   print('DataFrame is written to Excel File successfully.')
-#
-#   file_name2 = 'DataFrameExport.csv'
-#   df1_grade.to_csv(file_name2)
-#   print('DataFrame is written to CSV File successfully.')
-
-
-#***************************************************************************#
-#sec.5 L29: Data Prep: Preprocessing Discrete Variables. creating dummies part I
-# home ownsership independent variable (x)
-# code: CreditRiskModelingPreparation5.9.py
-
 df2_home_own = woe_discrete(df_inputs_train_prep,'home_ownership',df_targets_train_prep)
-# plot_by_WoE(df2_home_own)
+df3_addr_st = woe_discrete(df_inputs_train_prep,'addr_state',df_targets_train_prep)
 
-# combine such underrepresented categories that are similar
-# Combine, OTHER, NONE, RENT, and ANY (WoE as very low). OWN and MORTGAGE will be in a separate dummy var
+#***************************************************************************#
+# Creating dummies part I; Sec.5 L29: Data Prep: Preprocessing Discrete Variables.
+
+# COARSE CLASSING
+# visualize data and group/combine together categories that are similar or underrepresented (by the counts)
+# ex. plot_by_WoE(df3_addr_st)
+
+# df1_grade : no combining needed
+# df2_home_own : Combine, OTHER, NONE, RENT, and ANY (WoE as very low). OWN and MORTGAGE will be in a separate dummy var
 df_inputs_train_prep['home_ownership:RENT_OTHER_NONE_ANY'] = sum([df_inputs_train_prep['home_ownership:RENT'], df_inputs_train_prep['home_ownership:OTHER'],
                                                             df_inputs_train_prep['home_ownership:NONE'], df_inputs_train_prep['home_ownership:ANY']])
 
-
-#sec.5 L30: Data Prep: Preprocessing Discrete Variables. creating dummies part I
-# address state - independent variable (x)
-
-# addr_state = df_inputs_train_prep['addr_state'].unique()
-# len(addr_state)
-# df_addr_sorted = df_inputs_train_prep['addr_state'].sort_values().unique()
-# df_addr_sorted = df_inputs_train_prep['addr_state'].unique().sort_values() # does not work. sort first, then unique
-
-df3_addr_st = woe_discrete(df_inputs_train_prep,'addr_state',df_targets_train_prep)
-
+# df3_addr_st :
 # if column 'addr_state:ND' exist, leave it, else create a new column and set it to 0.
 if ['addr_state:ND'] in df_inputs_train_prep.columns.values:
     pass
 else:
     df_inputs_train_prep['addr_state:ND'] = 0
-
-# COARSE CLASSING
-# visualize data and group together
-# plot_by_WoE(df3_addr_st)
-# #remove the first and last two elements
-# plot_by_WoE(df3_addr_st.iloc[2:-2, :])
-# #check the remaining states
-# plot_by_WoE(df3_addr_st.iloc[6:-6, :])
-
-#***************************************************************************#
-#sec.5 L30: Data Prep: Preprocessing Discrete Variables. creating dummies part II
-# code: CreditRiskModelingPreparation5.10.py
-
-# Check shape
-# df_inputs_train_prep.shape #(373028, 208)
 
 #creates new column and field with boolean 1 or 0
 df_inputs_train_prep['addr_state:ND_NE_IA_NV_FL_HI_AL'] = sum([df_inputs_train_prep['addr_state:ND'], df_inputs_train_prep['addr_state:NE'],
@@ -235,17 +153,34 @@ df_inputs_train_prep['addr_state:WV_NH_WY_DC_ME_ID'] = sum([df_inputs_train_prep
 
 
 #***************************************************************************#
-# TEMP DELETE THIS
-# name of excel file
-file_name = 'df_inputs_train_prep.xlsx'
-# sheet_name='df_inputs_train_prep'
-# saving tp excel. Note: requires openpyxl package installed
-# df_inputs_train_prep[['id','grade','home_ownership','addr_state','addr_state:ND','addr_state:NE','addr_state:IA','addr_state:NV','addr_state:FL','addr_state:HI','addr_state:AL','addr_state:ND_NE_IA_NV_FL_HI_AL']].to_excel(file_name)
-df_inputs_train_prep[['id','grade','home_ownership','addr_state']]
-df_inputs_train_prep.to_excel(file_name)
-# df_inputs_train_prep.to_excel(file_name, sheet_name=sheet_name)
-print('DataFrame is written to Excel File successfully.')
+## TEMP, DELETE THIS
 
-import os
-cwd = os.getcwd()
-print(cwd)
+# Visualize DataFrame to CSV
+dataframe_name = 'df_inputs_train_prep'
+file_name = 'temp/df_inputs_train_prep.csv'
+
+# Try Except: https://www.w3schools.com/python/python_try_except.asp
+try:
+    # start from column HA = good_bad
+    df_inputs_train_prep[:51].to_csv(file_name)
+except Exception as e:
+    print('exec loan_data.to_csv(file_name); error = ' + e)
+else:
+    print(f'DataFrame {dataframe_name} is written to CSV File = {file_name} successfully.')
+
+
+# Visualize x vars and information values (IV)
+#summarize indep variables and IV in a table. Create a List and convert to a df
+#note: never grow a df! First, accumulate data in a list then create the df
+#see: https://www.geeksforgeeks.org/different-ways-to-create-pandas-dataframe/
+#   c0 = ['grade','addr_state','purpose']
+#   c1 = [df1_grade['IV'].iloc[0],df2['IV'].iloc[0],df3['IV'].iloc[0]]
+#   l = list(zip(c0,c1))
+#   df_IV = pd.DataFrame(data=l, columns=['ind_var','IV'])
+#   df_IV.dtypes
+#***************************************************************************#
+
+df_inputs_train_prep.iloc[:51,(0:2, 206:)].to_csv(file_name)
+df_inputs_train_prep.iloc[:51, 205:]
+
+df_tmp = pd.concat([df_inputs_train_prep.iloc[:51,1:4], df_inputs_train_prep.iloc[:52,206:]], axis=1)
