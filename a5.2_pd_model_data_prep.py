@@ -51,6 +51,15 @@ df_inputs_train_prep = loan_data_inputs_train
 df_targets_train_prep = loan_data_targets_train
 # df_inputs_train_prep['grade'].unique()
 
+# name of excel file
+file_name = 'temp/df_inputs_train_prep.csv'
+df_inputs_train_prep[['id','grade','home_ownership','addr_state']].head()
+df_inputs_train_prep.iloc[:10].to_csv(file_name)
+df_inputs_train_prep[:20,['id','grade','home_ownership','addr_state']]
+df_inputs_train_prep[['id','grade','home_ownership','addr_state']].to_csv(file_name)
+
+
+
 #***************************************************************************#
 # Ref: S5.27  Data preparation. Preprocessing discrete variables: automating calculations
 
@@ -221,9 +230,13 @@ df_inputs_train_prep['addr_state:WV_NH_WY_DC_ME_ID'] = sum([df_inputs_train_prep
 #***************************************************************************#
 # TEMP DELETE THIS
 # name of excel file
-file_name = 'DataFrameExport.xlsx'
+file_name = 'df_inputs_train_prep.xlsx'
+# sheet_name='df_inputs_train_prep'
 # saving tp excel. Note: requires openpyxl package installed
-df_inputs_train_prep[['id','grade','home_ownership','addr_state','addr_state:ND','addr_state:NE','addr_state:IA','addr_state:NV','addr_state:FL','addr_state:HI','addr_state:AL','addr_state:ND_NE_IA_NV_FL_HI_AL']].to_excel(file_name)
+# df_inputs_train_prep[['id','grade','home_ownership','addr_state','addr_state:ND','addr_state:NE','addr_state:IA','addr_state:NV','addr_state:FL','addr_state:HI','addr_state:AL','addr_state:ND_NE_IA_NV_FL_HI_AL']].to_excel(file_name)
+df_inputs_train_prep[['id','grade','home_ownership','addr_state']]
+df_inputs_train_prep.to_excel(file_name)
+# df_inputs_train_prep.to_excel(file_name, sheet_name=sheet_name)
 print('DataFrame is written to Excel File successfully.')
 
 import os

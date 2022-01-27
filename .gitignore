@@ -1,16 +1,22 @@
 # created by virtualenv automatically
+
+# venv dir
 /Lib
 /Scripts
-
-/learning_resources
+# User Dir
 /data/loan_data_2007_2014_clean.csv
 /data/loan_data_2007_2014.csv
 /data/1.3_us_state_codes.csv
-/data/DataFrameExport.xlsx
+/data/loan_data_2007_2014 - Copy.csv
+/data/loan_data_2007_2014_clean - Copy.csv
 
+/learning_resources
+/temp
 
-# ------------------------------------
+# Root Directory
+00_to_do_task_list.txt
 
+# **************************************************************************************
 # Created by https://www.toptal.com/developers/gitignore/api/pycharm
 # Edit at https://www.toptal.com/developers/gitignore?templates=pycharm
 
@@ -124,3 +130,4 @@ fabric.properties
 .idea/codestream.xml
 
 # End of https://www.toptal.com/developers/gitignore/api/pycharm
+# **************************************************************************************

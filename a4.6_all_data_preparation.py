@@ -104,14 +104,7 @@ loan_data['mths_since_issue_d'] = round(pd.to_numeric((pd.to_datetime('2017-12-0
 pd.get_dummies(loan_data['grade'], prefix='grade', prefix_sep=':')
 
 # We create a "List" of dataframes. 1 df for each of the variables below.
-loan_data_dummies = [pd.get_dummies(loan_data['grade'], prefix='grade', prefix_sep=':'),
-                     pd.get_dummies(loan_data['sub_grade'], prefix='sub_grade', prefix_sep=':'),
-                     pd.get_dummies(loan_data['home_ownership'], prefix='home_ownership', prefix_sep=':'),
-                     pd.get_dummies(loan_data['verification_status'], prefix='verification_status', prefix_sep=':'),
-                     pd.get_dummies(loan_data['loan_status'], prefix='loan_status', prefix_sep=':'),
-                     pd.get_dummies(loan_data['purpose'], prefix='purpose', prefix_sep=':'),
-                     pd.get_dummies(loan_data['addr_state'], prefix='addr_state', prefix_sep=':'),
-                     pd.get_dummies(loan_data['initial_list_status'], prefix='initial_list_status', prefix_sep=':')]
+loan_data_dummies = [pd.get_dummies(loan_data['addr_state'], prefix='addr_state', prefix_sep=':'), pd.get_dummies(loan_data['grade'], prefix='grade', prefix_sep=':'), pd.get_dummies(loan_data['home_ownership'], prefix='home_ownership', prefix_sep=':'), pd.get_dummies(loan_data['initial_list_status'], prefix='initial_list_status', prefix_sep=':'), pd.get_dummies(loan_data['loan_status'], prefix='loan_status', prefix_sep=':'), pd.get_dummies(loan_data['purpose'], prefix='purpose', prefix_sep=':'), pd.get_dummies(loan_data['sub_grade'], prefix='sub_grade', prefix_sep=':'), pd.get_dummies(loan_data['verification_status'], prefix='verification_status', prefix_sep=':')]
 
 # we concatenate the list of dataframes (consisting of dummy columns) as column (Axis 1)
 # into a single dataframe of dummies
@@ -156,6 +149,14 @@ loan_data['open_acc'].fillna(0, inplace=True)
 loan_data['inq_last_6mths'].fillna(0, inplace=True)
 loan_data['delinq_2yrs'].fillna(0, inplace=True)
 loan_data['emp_length_int'].fillna(0, inplace=True)
+
+
+# ----
+# write to csv
+dataframe_name = 'loan_data'
+file_name = 'data/loan_data_2007_2014_clean.csv'
+loan_data.to_csv(file_name)
+print(f'DataFrame {dataframe_name} is written to CSV File = {file_name} successfully.')
 
 # ---- END --------
 '''
