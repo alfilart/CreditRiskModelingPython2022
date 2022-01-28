@@ -46,12 +46,15 @@ df_targets_train_prep = loan_data_targets_train
 def woe_discrete(df, discrete_variable_name, df_good_bad_variable):
     # get column from inputs df and good_bad column from Targets df. merge the two df.
     df = pd.concat([df[discrete_variable_name], df_good_bad_variable], axis=1)
-    # merge the two results into one df
+    # merge the two results into one df. note: as_index=False means group by the column names, and not by the index, =False,is same as SQL group by
+    # aggregate mean() is the mean of true=1=good values. therefore, the mean is the percentage of Good values ex. 88/100 = 88%
     df = pd.concat([df.groupby(df.columns.values[0], as_index=False)[df.columns.values[1]].count(),
                      df.groupby(df.columns.values[0], as_index=False)[df.columns.values[1]].mean()], axis=1)
     df = df.iloc[:, [0, 1, 3]]  # drop 2nd field, redundant field.
     # rename columns. Col(0)=as is; col(1)=number of oservations; Ccol(2) proportion of good and bad
     df.columns = [df.columns.values[0], 'n_obs', 'prop_good']
+    # get percentage of observations n over total N. Insert after n_obs
+    df.insert(2, 'prop_n_obs', df['n_obs'] / df['n_obs'].sum())
     # 1) get the number of good and bad borrowers by grade group
     df['n_good'] = df['prop_good'] * df['n_obs']
     df['n_bad'] = (1 - df['prop_good']) * df['n_obs']
@@ -62,12 +65,49 @@ def woe_discrete(df, discrete_variable_name, df_good_bad_variable):
     df['WoE'] = np.log(df['prop_n_good'] / df['prop_n_bad'])
     # sort categories with the highest default rate first, then reset index
     df = df.sort_values(['WoE'])
-    df = df.reset_index(drop=True)
+    df = df.reset_index(drop=True) # here, there's no groupby so we reset the index afer df sort.
     df['WoE'].replace(np.inf, np.nan, inplace = True) #replace infinite to NaN
     # calculate Information Value
     df['IV'] = (df['prop_n_good']-df['prop_n_bad']) * df['WoE']
     df['IV'] = df['IV'].sum()
     return df
+
+#***************************************************************************#
+#  Preprocessing CONTINOUS variables: automating calculations of WoE for discrete vars. Ref: S5.27
+def woe_ordered_continuous(df, discrete_variable_name, df_good_bad_variable):
+    # get column from inputs df and good_bad column from Targets df. merge the two df.
+    df = pd.concat([df[discrete_variable_name], df_good_bad_variable], axis=1)
+    # merge the two results into one df. note: as_index=False means group by the column names, and not by the index, =False,is same as SQL group by
+    # aggregate mean() is the mean of true=1=good values. therefore, the mean is the percentage of Good values ex. 88/100 = 88%
+    df = pd.concat([df.groupby(df.columns.values[0], as_index=False)[df.columns.values[1]].count(),
+                     df.groupby(df.columns.values[0], as_index=False)[df.columns.values[1]].mean()], axis=1)
+    df = df.iloc[:, [0, 1, 3]]  # drop 2nd field, redundant field.
+    # rename columns. Col(0)=as is; col(1)=number of oservations; Ccol(2) proportion of good and bad
+    df.columns = [df.columns.values[0], 'n_obs', 'prop_good']
+    # get percentage of observations n over total N. Insert after n_obs
+    df.insert(1, 'prop_n_obs', df['n_obs'] / df['n_obs'].sum())
+    # 1) get the number of good and bad borrowers by grade group
+    df['n_good'] = df['prop_good'] * df['n_obs']
+    df['n_bad'] = (1 - df['prop_good']) * df['n_obs']
+    # 2)get the proportion of good/bad borrowers for each grade
+    df['prop_n_good'] = df['n_good'] / df['n_good'].sum()
+    df['prop_n_bad'] = df['n_bad'] / df['n_bad'].sum()
+    # calculate WoE for the variable grade. W
+    df['WoE'] = np.log(df['prop_n_good'] / df['prop_n_bad'])
+    # In continous, we remove sort by WoE and keep the natural sort of the input df
+    df['WoE'].replace(np.inf, np.nan, inplace = True) #replace infinite to NaN
+    # calculate Information Value
+    df['IV'] = (df['prop_n_good']-df['prop_n_bad']) * df['WoE']
+    df['IV'] = df['IV'].sum()
+    return df
+
+
+def append_IV_list(df, lst):
+    # if lst is None:
+    #     lst = []
+    val = [df_temp.columns[0], df_temp.iloc[0, 9]]
+    lst.append(val)
+    return lst
 
 #***************************************************************************#
 # Visualizing results. sec.5 L28:
@@ -88,32 +128,42 @@ def plot_by_WoE(df_WoE, roation_of_axis_labels = 0, width=15, height=7 ):
 # plot_by_WoE(df1_grade)
 
 #***************************************************************************#
-# Calculate WoE for the x vars. Call function: woe_discrete(df, discrete_var_name(x), df_target_var(Y))
-
-df1_grade = woe_discrete(df_inputs_train_prep,'grade',df_targets_train_prep)
-df2_home_own = woe_discrete(df_inputs_train_prep,'home_ownership',df_targets_train_prep)
-df3_addr_st = woe_discrete(df_inputs_train_prep,'addr_state',df_targets_train_prep)
-
-#***************************************************************************#
+# COARSE CLASSING (DISCRETE VARIABLES)
 # Creating dummies part I; Sec.5 L29: Data Prep: Preprocessing Discrete Variables.
+# 1. Calculate WoE for the x vars. Call function: woe_discrete(df, discrete_var_name(x), df_target_var(Y))
+# 2. Visualize data with func: plot_by_WoE(df_w_WoE) ;
+# 3. Coarse class by grouping similar WoE vars and creating new dummy columns. As each column will only have one value wit 1, this can be grouped by Summing
+# 4  Decide the reference catgegory and include names of dummy vars and reference dummy vars in a list in excel
+# In general, you have to put the categories with similar weight of evidence in one and the same category (dummy variable). However, sometimes, other considerations may play a role, such as how large the initial categories are, or their meaning, etc.
 
-# COARSE CLASSING
-# visualize data and group/combine together categories that are similar or underrepresented (by the counts)
-# ex. plot_by_WoE(df3_addr_st)
 
-# df1_grade : no combining needed
-# df2_home_own : Combine, OTHER, NONE, RENT, and ANY (WoE as very low). OWN and MORTGAGE will be in a separate dummy var
+# ---- df1_grade : no combining needed ---
+df_temp = woe_discrete(df_inputs_train_prep,'grade',df_targets_train_prep)
+# plot_by_WoE(df_temp)
+
+# Collect variable names and IV values to outputed to excel in the end for analysis of IV
+lst_IV = [] # initialize list_IV
+lst_IV = append_IV_list(df_temp, lst_IV)
+
+# --- df2_home_own : Combine, OTHER, NONE, RENT, and ANY (WoE as very low). OWN and MORTGAGE will be in a separate dummy var
+df_temp = woe_discrete(df_inputs_train_prep,'home_ownership',df_targets_train_prep)
+# plot_by_WoE(df2_home_own)
+lst_IV = append_IV_list(df_temp, lst_IV)
+
 df_inputs_train_prep['home_ownership:RENT_OTHER_NONE_ANY'] = sum([df_inputs_train_prep['home_ownership:RENT'], df_inputs_train_prep['home_ownership:OTHER'],
                                                             df_inputs_train_prep['home_ownership:NONE'], df_inputs_train_prep['home_ownership:ANY']])
 
-# df3_addr_st :
-# if column 'addr_state:ND' exist, leave it, else create a new column and set it to 0.
-if ['addr_state:ND'] in df_inputs_train_prep.columns.values:
+# ---- df3_addr_st : if column 'addr_state:ND' exist, leave it, else create a new column and set it to 0.
+df_temp = woe_discrete(df_inputs_train_prep,'addr_state',df_targets_train_prep)
+# plot_by_WoE(df3_addr_st)
+lst_IV = append_IV_list(df_temp, lst_IV)
+
+if ['addr_state:ND'] in df_inputs_train_prep.columns.values:  # handle missing values
     pass
 else:
     df_inputs_train_prep['addr_state:ND'] = 0
 
-#creates new column and field with boolean 1 or 0
+# Note: we can use Sum() as all will have 0 values, except 1 (it's exclusive) therefore, it will always sum to only 1
 df_inputs_train_prep['addr_state:ND_NE_IA_NV_FL_HI_AL'] = sum([df_inputs_train_prep['addr_state:ND'], df_inputs_train_prep['addr_state:NE'],
                                                          df_inputs_train_prep['addr_state:IA'], df_inputs_train_prep['addr_state:NV'],
                                                          df_inputs_train_prep['addr_state:FL'], df_inputs_train_prep['addr_state:HI'],
@@ -151,10 +201,119 @@ df_inputs_train_prep['addr_state:WV_NH_WY_DC_ME_ID'] = sum([df_inputs_train_prep
                                               df_inputs_train_prep['addr_state:WY'], df_inputs_train_prep['addr_state:DC'],
                                               df_inputs_train_prep['addr_state:ME'], df_inputs_train_prep['addr_state:ID']])
 
+# Sec 5. chp 31 HW
+# df4_verification_status :
+df_temp = woe_discrete(df_inputs_train_prep, 'verification_status', df_targets_train_prep)
+# plot_by_WoE(df4_verification_status)
+lst_IV = append_IV_list(df_temp, lst_IV)
+
+# df5_purpose : combine
+df_temp = woe_discrete(df_inputs_train_prep, 'purpose', df_targets_train_prep)
+# plot_by_WoE(df5_purpose)
+df_inputs_train_prep['purpose:educ__sm_b__wedd__ren_en__mov__house'] = sum([df_inputs_train_prep['purpose:educational'], df_inputs_train_prep['purpose:small_business'],
+                                                                 df_inputs_train_prep['purpose:wedding'], df_inputs_train_prep['purpose:renewable_energy'],
+                                                                 df_inputs_train_prep['purpose:moving'], df_inputs_train_prep['purpose:house']])
+df_inputs_train_prep['purpose:oth__med__vacation'] = sum([df_inputs_train_prep['purpose:other'], df_inputs_train_prep['purpose:medical'],
+                                             df_inputs_train_prep['purpose:vacation']])
+df_inputs_train_prep['purpose:major_purch__car__home_impr'] = sum([df_inputs_train_prep['purpose:major_purchase'], df_inputs_train_prep['purpose:car'],
+                                                        df_inputs_train_prep['purpose:home_improvement']])
+
+
+# df5_initial_list_status : no combining needed
+df_temp = woe_discrete(df_inputs_train_prep, 'initial_list_status', df_targets_train_prep)
+# plot_by_WoE(df6_initial_list_status)
+lst_IV = append_IV_list(df_temp, lst_IV)
+
+# **************************************************************************
+# Preprocessing CONTINUOUS Variables: Creating Dummy Variables, Part 1
+# Same as discrete with differnce that we don't need to fine class, also dummies are combined using pd.isin([list]) unlike aggregate groupby in Discrete
+
+# term_int
+df_temp = woe_ordered_continuous(df_inputs_train_prep, 'term_int', df_targets_train_prep)
+# plot_by_woe(df_temp)
+lst_IV = append_IV_list(df_temp, lst_IV)
+
+df_inputs_train_prep['term:36'] = np.where((df_inputs_train_prep['term_int'] == 36), 1, 0)
+df_inputs_train_prep['term:60'] = np.where((df_inputs_train_prep['term_int'] == 60), 1, 0)
+
+# emp_length_int
+df_temp = woe_ordered_continuous(df_inputs_train_prep, 'emp_length_int', df_targets_train_prep)
+# plot_by_woe(df_temp)
+lst_IV = append_IV_list(df_temp, lst_IV)
+
+df_inputs_train_prep['emp_length:0'] = np.where(df_inputs_train_prep['emp_length_int'].isin([0]), 1, 0)
+df_inputs_train_prep['emp_length:1'] = np.where(df_inputs_train_prep['emp_length_int'].isin([1]), 1, 0)
+df_inputs_train_prep['emp_length:2-4'] = np.where(df_inputs_train_prep['emp_length_int'].isin(range(2, 5)), 1, 0)
+df_inputs_train_prep['emp_length:5-6'] = np.where(df_inputs_train_prep['emp_length_int'].isin(range(5, 7)), 1, 0)
+df_inputs_train_prep['emp_length:7-9'] = np.where(df_inputs_train_prep['emp_length_int'].isin(range(7, 10)), 1, 0)
+# df_inputs_train_prep['emp_length:10'] = np.where(df_inputs_train_prep['emp_length_int'].isin([10]), 1, 0)
+df_inputs_train_prep['emp_length:10'] = np.where(df_inputs_train_prep['emp_length_int'] > 9, 1, 0)
+
+## Preprocessing Continuous Variables: Creating Dummy Variables, Part 2
+# mths_since_issue_d
+# fine class to 50 buckets
+df_inputs_train_prep['mths_since_issue_d_factor'] = pd.cut(df_inputs_train_prep['mths_since_issue_d'], 50)
+df_temp = woe_ordered_continuous(df_inputs_train_prep, 'mths_since_issue_d_factor', df_targets_train_prep)
+# plot_by_woe(df_temp)
+# plot_by_woe(df_temp, 90) # We plot the weight of evidence values, rotating the labels 90 degrees.
+lst_IV = append_IV_list(df_temp, lst_IV)
+
+# We create the following categories:
+# < 38, 38 - 39, 40 - 41, 42 - 48, 49 - 52, 53 - 64, 65 - 84, > 84.
+df_inputs_train_prep['mths_since_issue_d:<38'] = np.where(df_inputs_train_prep['mths_since_issue_d'] < 38, 1, 0)
+df_inputs_train_prep['mths_since_issue_d:38-39'] = np.where(df_inputs_train_prep['mths_since_issue_d'].isin(range(38, 40)), 1, 0)
+df_inputs_train_prep['mths_since_issue_d:40-41'] = np.where(df_inputs_train_prep['mths_since_issue_d'].isin(range(40, 42)), 1, 0)
+df_inputs_train_prep['mths_since_issue_d:42-48'] = np.where(df_inputs_train_prep['mths_since_issue_d'].isin(range(42, 49)), 1, 0)
+df_inputs_train_prep['mths_since_issue_d:49-52'] = np.where(df_inputs_train_prep['mths_since_issue_d'].isin(range(49, 53)), 1, 0)
+df_inputs_train_prep['mths_since_issue_d:53-64'] = np.where(df_inputs_train_prep['mths_since_issue_d'].isin(range(53, 65)), 1, 0)
+df_inputs_train_prep['mths_since_issue_d:65-84'] = np.where(df_inputs_train_prep['mths_since_issue_d'].isin(range(65, 85)), 1, 0)
+# df_inputs_train_prep['mths_since_issue_d:>84'] = np.where(df_inputs_train_prep['mths_since_issue_d'].isin(range(85, int(df_inputs_train_prep['mths_since_issue_d'].max()))), 1, 0)
+df_inputs_train_prep['mths_since_issue_d:>84'] = np.where(df_inputs_train_prep['mths_since_issue_d'] > 84, 1, 0)
+
+# int_rate
+# Here we do fine-classing: using the 'cut' method, we split the variable into 50 categories by its values.
+df_inputs_train_prep['int_rate_factor'] = pd.cut(df_inputs_train_prep['int_rate'], 50)
+df_temp = woe_ordered_continuous(df_inputs_train_prep, 'int_rate_factor', df_targets_train_prep)
+# plot_by_woe(df_temp, 90) # rotating the labels 90 degrees.
+lst_IV = append_IV_list(df_temp, lst_IV)
+
+# '< 9.548', '9.548 - 12.025', '12.025 - 15.74', '15.74 - 20.281', '> 20.281'
+df_inputs_train_prep['int_rate:<9.548'] = np.where((df_inputs_train_prep['int_rate'] <= 9.548), 1, 0)
+df_inputs_train_prep['int_rate:9.548-12.025'] = np.where((df_inputs_train_prep['int_rate'] > 9.548) & (df_inputs_train_prep['int_rate'] <= 12.025), 1, 0)
+df_inputs_train_prep['int_rate:12.025-15.74'] = np.where((df_inputs_train_prep['int_rate'] > 12.025) & (df_inputs_train_prep['int_rate'] <= 15.74), 1, 0)
+df_inputs_train_prep['int_rate:15.74-20.281'] = np.where((df_inputs_train_prep['int_rate'] > 15.74) & (df_inputs_train_prep['int_rate'] <= 20.281), 1, 0)
+df_inputs_train_prep['int_rate:>20.281'] = np.where((df_inputs_train_prep['int_rate'] > 20.281), 1, 0)
+
+# funded_amnt
+df_inputs_train_prep['funded_amnt_factor'] = pd.cut(df_inputs_train_prep['funded_amnt'], 50)
+# Here we do fine-classing: using the 'cut' method, we split the variable into 50 categories by its values.
+df_temp = woe_ordered_continuous(df_inputs_train_prep, 'funded_amnt_factor', df_targets_train_prep)
+# plot_by_woe(df_temp, 90) # rotating the labels 90 degrees.
+lst_IV = append_IV_list(df_temp, lst_IV)
+
+
+
+#*****************************
+# List of variables and IV, print to CSV for analysis
+
+# convert list into df
+df_IV = pd.DataFrame(data=lst_IV, columns=['Variable','IV'])
+dataframe_name = 'df_IV'
+file_name = 'temp/df_IV.csv'
+
+try:
+    # start from column HA = good_bad
+    df_IV.to_csv(file_name)
+except Exception as e:
+    print('exec loan_data.to_csv(file_name); error = ' + e)
+else:
+    print(f'DataFrame {dataframe_name} is written to CSV File = {file_name} successfully.')
+
+
 
 #***************************************************************************#
 ## TEMP, DELETE THIS
-
+'''
 # Visualize DataFrame to CSV
 dataframe_name = 'df_inputs_train_prep'
 file_name = 'temp/df_inputs_train_prep.csv'
@@ -178,9 +337,40 @@ else:
 #   l = list(zip(c0,c1))
 #   df_IV = pd.DataFrame(data=l, columns=['ind_var','IV'])
 #   df_IV.dtypes
+'''
 #***************************************************************************#
-
+'''
 df_inputs_train_prep.iloc[:51,(0:2, 206:)].to_csv(file_name)
 df_inputs_train_prep.iloc[:51, 205:]
 
 df_tmp = pd.concat([df_inputs_train_prep.iloc[:51,1:4], df_inputs_train_prep.iloc[:52,206:]], axis=1)
+
+
+# -------------
+df_inputs_train_prep['addr_state:]
+
+
+# df[df['A'].str.contains("hello")
+df_inputs_train_prep[df_inputs_train_prep.columns.str.contains('addr_state')]
+
+df.loc[:,df.columns.str.startswith('al')]  # col name start with
+
+df_tmp = df_inputs_train_prep.loc[:10, df_inputs_train_prep.columns.str.startswith('addr_st')]
+
+# -------------------------
+
+#***************************************************************************#
+#summarize indep variables and IF in a table. Create a List and convert to a df
+#note: never grow a df! First, accumulate data in a list then create the df
+#see: https://www.geeksforgeeks.org/different-ways-to-create-pandas-dataframe/
+  c0 = ['grade','addr_state','purpose']
+  c1 = [df1_grade['IV'].iloc[0],df2['IV'].iloc[0],df3['IV'].iloc[0]]
+  l = list(zip(c0,c1))
+  df_IF = pd.DataFrame(data=l, columns=['ind_var','IF'])
+  df_IF.dtypes
+
+
+df5_purpose = df5_purpose.sort_values('n_obs')
+
+'''
+
