@@ -4,8 +4,7 @@
 /Lib
 /Scripts
 # User Dir
-/data/loan_data_2007_2014_clean*
-/data/loan_data_2007_2014*
+/data/loan_data*
 /data/1.3_us_state_codes*
 
 /learning_resources
