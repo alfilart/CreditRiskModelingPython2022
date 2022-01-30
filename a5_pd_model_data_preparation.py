@@ -35,11 +35,15 @@ print('loan_data_inputs_test.shape = ' + str(loan_data_inputs_test.shape))
 # Data Preparation: load Training data: loan_data_inputs_train, loan_data_targets_train
 # create df for preprocessing.  calculate WoE and IV   / # REF: Section 5, video 26
 
-# df_inputs_prepr = loan_data_inputs_train
-# df_targets_prep = loan_data_targets_train
+# step 1) run using: set a) train set and last part and save to csv
 
-df_inputs_prepr = loan_data_inputs_test
-df_targets_prep = loan_data_targets_test
+# a) train set
+df_inputs_prepr = loan_data_inputs_train
+df_targets_prep = loan_data_targets_train
+
+# b) test set
+# df_inputs_prepr = loan_data_inputs_test
+# df_targets_prep = loan_data_targets_test
 
 #***************************************************************************#
 #  Preprocessing DISCRETE variables: automating calculations of WoE for discrete vars. Ref: S5.27
@@ -569,15 +573,19 @@ df_inputs_prepr['mths_since_last_record:>86'] = np.where((df_inputs_prepr['mths_
 # df_targets_prep = loan_data_targets_train
 #-----------------------------------------
 
-# shape of df's
-# loan_data_inputs_train.shape  # (373028, 324)
-# loan_data_targets_train.shape # (373028,)
-# loan_data_inputs_test.shape #  (93257, 324)
-# loan_data_targets_test.shape # (93257,)
+'''
+shape of df's
+loan_data_inputs_train.shape  # (373028, 324)
+loan_data_targets_train.shape # (373028,)
+loan_data_inputs_test.shape #  (93257, 324)
+loan_data_targets_test.shape # (93257,)
+'''
 
 # use temp df (df_inputs_prepr) to set main df's
 '''
+# a) train set
 loan_data_inputs_train = df_inputs_prepr
+# b) test set
 loan_data_inputs_test = df_inputs_prepr
 '''
 

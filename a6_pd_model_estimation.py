@@ -1,4 +1,31 @@
 #  a6_pd_model_estimation
+'''
+TO DO:
+create a loop on df inputs_train and check for column sum <>1
+
+https://www.kaggle.com/getting-started/34336
+Error: DataConversionWarning: A column-vector y was passed when a 1d array was expected. Please change the shape of y to (n_samples, ), for example using ravel().
+y = column_or_1d(y, warn=True)
+
+How to Adjust CPU Cores Number
+https://www.jetbrains.com/help/objc/how-to-adjust-cpu-cores-number.html
+
+Increase the memory heap of the IDE
+https://www.jetbrains.com/help/pycharm/increasing-memory-heap.html
+
+https://stackoverflow.com/questions/48296019/python-pycharm-memory-and-cpu-allocation-for-faster-runtime
+
+cuML rapids
+https://docs.rapids.ai/api/cuml/stable/
+https://www.youtube.com/watch?v=ML3vCTOl690
+https://developer.nvidia.com/blog/run-rapids-on-microsoft-windows-10-using-wsl-2-the-windows-subsystem-for-linux/
+https://docs.rapids.ai/api/cuml/stable/
+
+
+
+
+'''
+
 
 # Import Libraries
 import numpy as np
@@ -7,24 +34,31 @@ import pandas as pd
 # Loading the Data and Selecting the Features
 
 ### Import Data  ************************************************************
-#Import data (cleaned) from .FEATHER
 
-loan_data_inputs_train = pd.read_feather('data/loan_data_inputs_train.feather').set_index('index')
-loan_data_targets_train = pd.read_feather('data/loan_data_targets_train.feather').set_index('index')
-loan_data_inputs_test = pd.read_feather('data/loan_data_inputs_test.feather').set_index('index')
-loan_data_targets_test = pd.read_feather('data/loan_data_targets_test.feather').set_index('index')
+loan_data_inputs_train = pd.read_csv('data/loan_data_inputs_train.csv', index_col = 0)
+loan_data_targets_train = pd.read_csv('data/loan_data_targets_train.csv', index_col = 0, header = None)
+loan_data_inputs_test = pd.read_csv('data/loan_data_inputs_test.csv', index_col = 0)
+loan_data_targets_test = pd.read_csv('data/loan_data_targets_test.csv', index_col = 0, header = None)
+
+#Import data (cleaned) from .FEATHER
+# loan_data_inputs_train = pd.read_feather('data/loan_data_inputs_train.feather').set_index('index')
+# loan_data_targets_train = pd.read_feather('data/loan_data_targets_train.feather').set_index('index')
+# loan_data_inputs_test = pd.read_feather('data/loan_data_inputs_test.feather').set_index('index')
+# loan_data_targets_test = pd.read_feather('data/loan_data_targets_test.feather').set_index('index')
 
 ### Explore Data  ************************************************************
+# train
 loan_data_inputs_train.head()
-
 loan_data_targets_train.head()
 
 loan_data_inputs_train.shape
-
 loan_data_targets_train.shape
 
-loan_data_inputs_test.shape
+loan_data_inputs_train.index
+loan_data_targets_train.index
 
+#target
+loan_data_inputs_test.shape
 loan_data_targets_test.shape
 
 loan_data_inputs_test.iloc[:,200:].columns
@@ -185,21 +219,51 @@ ref_categories = ['grade:G',
 'mths_since_last_delinq:0-3',
 'mths_since_last_record:0-2']
 
+# create intermediate inputs and targets train df's
 # From the dataframe with input variables, we drop the variables with variable names in the list with reference categories.
 inputs_train = inputs_train_with_ref_cat.drop(ref_categories, axis=1)
 
 inputs_train.head()
 
+# export to csv
+# inputs_train.to_csv('data/inputs_train.csv')
+# targets_train.to_csv('data/targets_train.csv')
+
+# import shortcuts ****************************
+# Import Libraries
+
+import numpy as np
+import pandas as pd
+
+inputs_train = pd.read_csv('data/inputs_train.csv', index_col = 0)
+loan_data_targets_train = pd.read_csv('data/loan_data_targets_train.csv', index_col = 0, header = None)
+
+targets_train = loan_data_targets_train.to_numpy()
+targets_train = targets_train.ravel()
+
+
 # PD Model Estimation
 
 ## Logistic Regression  ************************************************************
+
 from sklearn.linear_model import LogisticRegression
 from sklearn import metrics
 
-# reg = LogisticRegression()
-reg = LogisticRegression(penalty='l2', dual=False, tol=0.0001, C=1.0, fit_intercept=True, intercept_scaling=1, class_weight=None, random_state=None, solver='lbfgs',
-                         max_iter=150, multi_class='auto', verbose=0, warm_start=False, n_jobs=None, l1_ratio=None)
+reg = LogisticRegression(max_iter=1000, solver='lbfgs')
+# expected intercept is -1.89
 
+# reg = LogisticRegression()
+# reg = LogisticRegression(max_iter=120, solver='liblinear')
+# reg = LogisticRegression(max_iter=120)
+
+# reg = LogisticRegression(penalty='l2', dual=False, tol=0.0001, C=1.0, fit_intercept=True,
+#                          intercept_scaling=1, class_weight=None, random_state=None, solver='lbfgs',
+#                          max_iter=150, multi_class='auto', verbose=0, warm_start=False, n_jobs=None, l1_ratio=None)
+#
+# LogisticRegression(C=1.0, class_weight=None, dual=False, fit_intercept=True,
+#           intercept_scaling=1, max_iter=100, multi_class='ovr', n_jobs=1,
+#           penalty='l2', random_state=None, solver='liblinear', tol=0.0001,
+#           verbose=0, warm_start=False)
 
 # default is max_iter=100
 # We create an instance of an object from the 'LogisticRegression' class.
@@ -207,10 +271,24 @@ reg = LogisticRegression(penalty='l2', dual=False, tol=0.0001, C=1.0, fit_interc
 pd.options.display.max_rows = None
 # Sets the pandas dataframe options to display all columns/ rows.
 
-reg.fit(inputs_train, loan_data_targets_train)
+# time the run
+import time
+from datetime import timedelta
+
+start_time = time.time()
+
+# reg.fit(inputs_train, loan_data_targets_train.ravel())
 # Estimates the coefficients of the object from the 'LogisticRegression' class
 # with inputs (independent variables) contained in the first dataframe
 # and targets (dependent variables) contained in the second dataframe.
+reg.fit(inputs_train, targets_train)
+
+elapsed_time_secs = time.time() - start_time
+
+msg = "Execution took: %s secs (Wall clock time)" % timedelta(seconds=round(elapsed_time_secs))
+
+print(msg)
+# ------------------------------------------------------------------
 
 reg.intercept_
 # Displays the intercept contain in the estimated ("fitted") object from the 'LogisticRegression' class.
@@ -360,6 +438,7 @@ summary_table.loc[0] = ['Intercept', reg.intercept_[0]]
 summary_table = summary_table.sort_index()
 # Sorts the dataframe by index.
 summary_table
+
 
 ## Build a Logistic Regression Model with P-Values
 # P values for sklearn logistic regression.

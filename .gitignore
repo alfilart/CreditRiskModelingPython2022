@@ -6,6 +6,11 @@
 # User Dir
 /data/loan_data*
 /data/1.3_us_state_codes*
+/data/*.csv
+/data/*.bckup
+/data/*.feather
+/data/final_data_set_bckup*
+
 
 /learning_resources
 /temp
