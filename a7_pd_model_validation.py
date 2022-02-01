@@ -3,28 +3,27 @@
 ## Import Libraries
 import numpy as np
 import pandas as pd
+import time  # time the run
+from datetime import timedelta
+import pickle
 
-# import time # time the run
-# from datetime import timedelta
-# import pickle
-
-## Loading the Data and Selecting the Features
+### 1) Load the Data and Select the Features/Variables ********************************
 
 ### Import Data
-loan_data_inputs_train = pd.read_csv('loan_data_inputs_train.csv', index_col=0)
-loan_data_targets_train = pd.read_csv('loan_data_targets_train.csv', index_col=0, header=None)
-loan_data_inputs_test = pd.read_csv('loan_data_inputs_test.csv', index_col=0)
-loan_data_targets_test = pd.read_csv('loan_data_targets_test.csv', index_col=0, header=None)
+loan_data_inputs_train = pd.read_csv('data/loan_data_inputs_train.csv', index_col=0)
+loan_data_targets_train = pd.read_csv('data/loan_data_targets_train.csv', index_col=0, header=None)
+loan_data_inputs_test = pd.read_csv('data/loan_data_inputs_test.csv', index_col=0)
+loan_data_targets_test = pd.read_csv('data/loan_data_targets_test.csv', index_col=0, header=None)
 
 ### Explore Data
-loan_data_inputs_train.head()
-loan_data_targets_train.head()
-
-loan_data_inputs_train.shape
-loan_data_targets_train.shape
-
-loan_data_inputs_test.shape
-loan_data_targets_test.shape
+# loan_data_inputs_train.head()
+# loan_data_targets_train.head()
+#
+# loan_data_inputs_train.shape
+# loan_data_targets_train.shape
+#
+# loan_data_inputs_test.shape
+# loan_data_targets_test.shape
 
 ### Selecting the Features
 # Here we select a limited set of input variables in a new dataframe.
@@ -134,8 +133,7 @@ categories_with_ref_list = ['grade:A',
                             'mths_since_last_record:21-31',
                             'mths_since_last_record:32-80',
                             'mths_since_last_record:81-86',
-                            'mths_since_last_record:>=86',
-                            ]
+                            'mths_since_last_record:>86',]
 
 ref_categories_list = ['grade:G',
                        'home_ownership:RENT_OTHER_NONE_ANY',
@@ -159,32 +157,35 @@ ref_categories_list = ['grade:G',
 
 
 # Pre-process TRAINING inputs and targets
-inputs_train_with_ref_cat = loan_data_inputs_train.loc[:, [categories_with_ref_list]]
-inputs_train = inputs_train_with_ref_cat.drop(ref_categories_list, axis=1)
+inputs_train_with_ref_cat = loan_data_inputs_train.loc[:, categories_with_ref_list]
+inputs_train = inputs_train_with_ref_cat.drop(ref_categories_list, axis=1) # drop reference categories
 
 targets_train = loan_data_targets_train.to_numpy()
-targets_train = targets_train2.ravel()
+targets_train = targets_train.ravel()
 
-loan_data_inputs_train = pd.read_csv('loan_data_inputs_train.csv', index_col=0)
-loan_data_targets_train = pd.read_csv('loan_data_targets_train.csv', index_col=0, header=None)
-loan_data_inputs_test = pd.read_csv('loan_data_inputs_test.csv', index_col=0)
-loan_data_targets_test = pd.read_csv('loan_data_targets_test.csv', index_col=0, header=None)
-
-# Pre-process TARGETS inputs and targets
-inputs_test_with_ref_cat = loan_data_inputs_test.loc[:, [categories_with_ref_list]]
-inputs_test = inputs_test_with_ref_cat.drop(ref_categories_list, axis=1)
+# Pre-process TEST inputs and targets
+inputs_test_with_ref_cat = loan_data_inputs_test.loc[:, categories_with_ref_list]
+inputs_test = inputs_test_with_ref_cat.drop(ref_categories_list, axis=1) # drop reference categories
 
 targets_test = loan_data_targets_test.to_numpy()
 targets_test = targets_test.ravel()
 
-### Build a Logistic Regression Model with P-Values ********************************
+# drop unused variables (list and df's)
+del categories_with_ref_list
+del ref_categories_list
+del inputs_train_with_ref_cat
+del inputs_test_with_ref_cat
+del loan_data_inputs_train
+del loan_data_targets_train
+del loan_data_inputs_test
+del loan_data_targets_test
+
+### 2) Build a Logistic Regression Model with P-Values ********************************
 # P values for sklearn logistic regression.
 
-# Class to display p-values for logistic regression in sklearn.
-
+# 2.A) Class to display p-values for logistic regression in sklearn.
 from sklearn import linear_model
 import scipy.stats as stat
-
 
 class LogisticRegression_with_p_values:
 
@@ -211,132 +212,113 @@ class LogisticRegression_with_p_values:
         # self.F_ij = F_ij
 
 
-reg = LogisticRegression_with_p_values()
 # We create an instance of an object from the newly created 'LogisticRegression_with_p_values()' class.
+# reg = LogisticRegression_with_p_values()
+reg = LogisticRegression_with_p_values(max_iter=1000, solver='lbfgs') # , n_jobs=-1)
 
-reg.fit(inputs_train, loan_data_targets_train)
 # Estimates the coefficients of the object from the 'LogisticRegression' class
-# with inputs (independent variables) contained in the first dataframe
-# and targets (dependent variables) contained in the second dataframe.
+# with inputs (independent variables) contained in the first dataframe and targets (dependent variables) contained in the second dataframe.
 
-# Same as above.
+start_time = time.time()
+reg.fit(inputs_train, targets_train)
+elapsed_time_secs = time.time() - start_time
+msg = "reg.fit - Execution took: %s secs (Wall clock time)" % timedelta(seconds=round(elapsed_time_secs))
+print(msg)
+
+
+# Create summary for coefficients of the log reg model
+
+feature_name = inputs_train.columns.values # Stores the names of the columns of df (the variables)
 summary_table = pd.DataFrame(columns=['Feature name'], data=feature_name)
-summary_table['Coefficients'] = np.transpose(reg.coef_)
-summary_table.index = summary_table.index + 1
+summary_table['Coefficients'] = np.transpose(reg.coef_) # create coefficient column w reg obj coef transposed
+summary_table.index = summary_table.index + 1 # add row for intercept
 summary_table.loc[0] = ['Intercept', reg.intercept_[0]]
 summary_table = summary_table.sort_index()
-summary_table
+print(summary_table)
 
-# This is a list.
+## Add p-values to the summary table
+# This is a list. # We take the result of the newly added method 'p_values' and store it in a variable 'p_values'.
 p_values = reg.p_values
-# We take the result of the newly added method 'p_values' and store it in a variable 'p_values'.
 
-# Add the intercept for completeness.
+# Add the intercept for completeness. # We add the value 'NaN' in the beginning of the variable with p-values.
 p_values = np.append(np.nan, np.array(p_values))
-# We add the value 'NaN' in the beginning of the variable with p-values.
 
-summary_table['p_values'] = p_values
 # In the 'summary_table' dataframe, we add a new column, called 'p_values', containing the values from the 'p_values' variable.
-summary_table
-
-# Here we run a new model.
-reg2 = LogisticRegression_with_p_values()
-reg2.fit(inputs_train, loan_data_targets_train)
-
-feature_name = inputs_train.columns.values
-
-# Same as above.
-summary_table = pd.DataFrame(columns=['Feature name'], data=feature_name)
-summary_table['Coefficients'] = np.transpose(reg2.coef_)
-summary_table.index = summary_table.index + 1
-summary_table.loc[0] = ['Intercept', reg2.intercept_[0]]
-summary_table = summary_table.sort_index()
-summary_table
-
-# We add the 'p_values' here, just as we did before.
-p_values = reg2.p_values
-p_values = np.append(np.nan, np.array(p_values))
 summary_table['p_values'] = p_values
-summary_table
-# Here we get the results for our final PD model.
+print(summary_table)
 
-# Here we export our model to a 'SAV' file with file name 'pd_model.sav'. wb = write binary
-pickle.dump(reg2, open('data/pd_model.sav', 'wb'))
+# clean up unused variables
+del feature_name
+del p_values
+
+
+# Here, we get the results for our final PD model. we export our model to a 'SAV' file with file name 'pd_model.sav'. wb = write binary
+pickle.dump(reg, open('data/pd_model.sav', 'wb'))
 
 ## ********************************************************************************
-## PD Model Validation (Test)
+## 3 ) PD Model Validation (Test)
 ## ********************************************************************************
 
-# This is a shortcut
-## Import Libraries
-import numpy as np
-import pandas as pd
-import time  # time the run
-from datetime import timedelta
-import pickle
+# NOTE: if starting from this point
+#  re-run Part 1) Load the Data and Select the Features/Variables
+#  re-run # 2.A) Class to display p-values for logistic regression in sklearn.
 
-# Import saved pre-processed dataset
-# Import Train2 dataset (with removed columns
-inputs_test2 = pd.read_csv('data/inputs_test2.csv', index_col=0)
-loan_data_targets_test = pd.read_csv('data/loan_data_targets_test.csv', index_col=0, header=None)
-
-targets_test2 = loan_data_targets_train.to_numpy()
-targets_test2 = targets_test2.ravel()
-
+# Part 3.A) Load Model and predict y (y_hat). Get actual predicted class and probabilities (of 1=good)
 # Load model from disk. rb = read binary
-reg2 = pickle.load(open('data/pd_model.sav', 'rb'))
+reg = pickle.load(open('data/pd_model.sav', 'rb'))
 
 ### Out-of-sample validation (test)
 # Here, from the dataframe with inputs for testing, we keep the same variables that we used in our final PD model.
+# inputs_test.head()
 
-inputs_test = inputs_test_with_ref_cat.drop(ref_categories, axis=1)
-inputs_test.head()
-
-y_hat_test = reg2.model.predict(inputs_test)
 # Calculates the predicted values for the dependent variable (targets)
 # based on the values of the independent variables (inputs) supplied as an argument.
+y_hat_test = reg.model.predict(inputs_test)
 
-y_hat_test
 # This is an array of predicted discrete classess (in this case, 0s and 1s).
+print(y_hat_test)
 
-y_hat_test_proba = reg2.model.predict_proba(inputs_test)
 # Calculates the predicted probability values for the dependent variable (targets)
 # based on the values of the independent variables (inputs) supplied as an argument.
+y_hat_test_proba = reg.model.predict_proba(inputs_test)
 
-y_hat_test_proba
 # This is an array of arrays of predicted class probabilities for all classes.
-# In this case, the first value of every sub-array is the probability for the observation to belong to the first class, i.e. 0,
-# and the second value is the probability for the observation to belong to the first class, i.e. 1.
+# In this case, the first value of every sub-array is the probability for the observation to belong to the first class, i.e. 0=default=bad
+# and the second value is the probability for the observation to belong to the first class, i.e. 1=not default=good
+print(y_hat_test_proba)
 
-y_hat_test_proba[:][:, 1]
-# Here we take all the arrays in the array, and from each array, we take all rows, and only the element with index 1,
-# that is, the second element.
-# In other words, we take only the probabilities for being 1.
-
-y_hat_test_proba = y_hat_test_proba[:][:, 1]
+# Here we take all the arrays in the array, and from each array, we take all rows, and only the element with index 1, that is, the second element.
+# In other words, we take only the probabilities for being 1=not default=good
 # We store these probabilities in a variable.
+y_hat_test_proba = y_hat_test_proba[:][:, 1]
 
-y_hat_test_proba
 # This variable contains an array of probabilities of being 1.
+print(y_hat_test_proba)
 
-loan_data_targets_test_temp = loan_data_targets_test
+# delete this part ?
+# loan_data_targets_test = pd.read_csv('data/loan_data_targets_test.csv', index_col=0, header=None)
+# loan_data_targets_test_temp = loan_data_targets_test
+#
+# We reset the index of a dataframe to match up with y_hat_test_proba
+# loan_data_targets_test_temp.reset_index(drop=True, inplace=True)
 
-loan_data_targets_test_temp.reset_index(drop=True, inplace=True)
-# We reset the index of a dataframe.
-
-df_actual_predicted_probs = pd.concat([loan_data_targets_test_temp, pd.DataFrame(y_hat_test_proba)], axis=1)
 # Concatenates two dataframes.
+df_actual_predicted_probs = pd.concat([pd.DataFrame(targets_test), pd.DataFrame(y_hat_test_proba)], axis=1)
 
-df_actual_predicted_probs.shape
+df_actual_predicted_probs.shape  # (93257, 2)
 
 df_actual_predicted_probs.columns = ['loan_data_targets_test', 'y_hat_test_proba']
 
-df_actual_predicted_probs.index = loan_data_inputs_test.index
 # Makes the index of one dataframe equal to the index of another dataframe.
+df_actual_predicted_probs.index = inputs_test.index
 
 df_actual_predicted_probs.head()
 
-### Accuracy and Area under the Curve
+# delete unused variables
+del y_hat_test
+del
+
+### Part 3.B) Get Accuracy and Area under the Curve. Visualize via graph
 tr = 0.9
 # We create a new column with an indicator,
 # where every observation that has predicted probability greater than the threshold has a value of 1,
