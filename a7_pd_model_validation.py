@@ -263,7 +263,10 @@ pickle.dump(reg, open('data/pd_model.sav', 'wb'))
 #  re-run Part 1) Load the Data and Select the Features/Variables
 #  re-run # 2.A) Class to display p-values for logistic regression in sklearn.
 
-# Part 3.A) Load Model and predict y (y_hat). Get actual predicted class and probabilities (of 1=good)
+## ----------------------------------------------------------------------
+## Part 3.A) Load Model and predict y (y_hat). Get actual predicted class and probabilities (of 1=good)
+## ----------------------------------------------------------------------
+
 # Load model from disk. rb = read binary
 reg = pickle.load(open('data/pd_model.sav', 'rb'))
 
@@ -316,40 +319,54 @@ df_actual_predicted_probs.head()
 
 # delete unused variables
 del y_hat_test
-del
+del y_hat_test_proba
+## ----------------------------------------------------------------------
+## Part 3.B) Get Accuracy and Area under the Curve. Visualize via graph
+## ----------------------------------------------------------------------
+# Set threshold; cut-off for the category to be classified as 1=Good
 
-### Part 3.B) Get Accuracy and Area under the Curve. Visualize via graph
+# We create a new column with an indicator, where every observation that has predicted probability
+# greater than the threshold has a value of 1, and every observation that has predicted probability
+# lower than the threshold has a value of 0.
 tr = 0.9
-# We create a new column with an indicator,
-# where every observation that has predicted probability greater than the threshold has a value of 1,
-# and every observation that has predicted probability lower than the threshold has a value of 0.
 df_actual_predicted_probs['y_hat_test'] = np.where(df_actual_predicted_probs['y_hat_test_proba'] > tr, 1, 0)
 
-pd.crosstab(df_actual_predicted_probs['loan_data_targets_test'], df_actual_predicted_probs['y_hat_test'],
-            rownames=['Actual'], colnames=['Predicted'])
 # Creates a cross-table where the actual values are displayed by rows and the predicted values by columns.
 # This table is known as a Confusion Matrix.
+conf_mtrx_obs = pd.crosstab(df_actual_predicted_probs['loan_data_targets_test'], df_actual_predicted_probs['y_hat_test'],
+            rownames=['Actual'], colnames=['Predicted'])
 
-pd.crosstab(df_actual_predicted_probs['loan_data_targets_test'], df_actual_predicted_probs['y_hat_test'],
-            rownames=['Actual'], colnames=['Predicted']) / df_actual_predicted_probs.shape[0]
 # Here we divide each value of the table by the total number of observations,
 # thus getting percentages, or, rates.
+pd.crosstab(df_actual_predicted_probs['loan_data_targets_test'], df_actual_predicted_probs['y_hat_test'],
+            rownames=['Actual'], colnames=['Predicted']) / df_actual_predicted_probs.shape[0]
 
-(pd.crosstab(df_actual_predicted_probs['loan_data_targets_test'], df_actual_predicted_probs['y_hat_test'],
-             rownames=['Actual'], colnames=['Predicted']) / df_actual_predicted_probs.shape[0]).iloc[0, 0] + (
-            pd.crosstab(df_actual_predicted_probs['loan_data_targets_test'], df_actual_predicted_probs['y_hat_test'],
-                        rownames=['Actual'], colnames=['Predicted']) / df_actual_predicted_probs.shape[0]).iloc[1, 1]
 # Here we calculate Accuracy of the model, which is the sum of the diagonal rates.
+# (pd.crosstab(df_actual_predicted_probs['loan_data_targets_test'], df_actual_predicted_probs['y_hat_test'],
+#              rownames=['Actual'], colnames=['Predicted']) / df_actual_predicted_probs.shape[0]).iloc[0, 0] + (
+#             pd.crosstab(df_actual_predicted_probs['loan_data_targets_test'], df_actual_predicted_probs['y_hat_test'],
+#                         rownames=['Actual'], colnames=['Predicted']) / df_actual_predicted_probs.shape[0]).iloc[1, 1]
+
+conf_mtrx_pct = pd.crosstab(df_actual_predicted_probs['loan_data_targets_test'], df_actual_predicted_probs['y_hat_test'],
+            rownames=['Actual'], colnames=['Predicted']) / df_actual_predicted_probs.shape[0]
+
+# Model Accuracy= True Neg + True Pos
+# Model Accuracy= True Neg + True Pos
+
+## ----------------------------------------------------------------------
+# the Receiver Operating Characteristic (ROC) Curve S7.Chp 46
+## ----------------------------------------------------------------------
 
 from sklearn.metrics import roc_curve, roc_auc_score
 
-roc_curve(df_actual_predicted_probs['loan_data_targets_test'], df_actual_predicted_probs['y_hat_test_proba'])
 # Returns the Receiver Operating Characteristic (ROC) Curve from a set of actual values and their predicted probabilities.
 # As a result, we get three arrays: the false positive rates, the true positive rates, and the thresholds.
+roc_curve(df_actual_predicted_probs['loan_data_targets_test'], df_actual_predicted_probs['y_hat_test_proba'])
 
+# Here we store each of the three arrays in a separate variable.
 fpr, tpr, thresholds = roc_curve(df_actual_predicted_probs['loan_data_targets_test'],
                                  df_actual_predicted_probs['y_hat_test_proba'])
-# Here we store each of the three arrays in a separate variable.
+
 
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -361,12 +378,14 @@ plt.plot(fpr, tpr)
 # thus plotting the ROC curve.
 plt.plot(fpr, fpr, linestyle='--', color='k')
 # We plot a seconary diagonal line, with dashed line style and black color.
+# The diagnol straight line can be created by providng the same data for both x and y (ex. fpr, fpr)
 plt.xlabel('False positive rate')
 # We name the x-axis "False positive rate".
 plt.ylabel('True positive rate')
 # We name the x-axis "True positive rate".
 plt.title('ROC curve')
 # We name the graph "ROC curve".
+plt.show()
 
 AUROC = roc_auc_score(df_actual_predicted_probs['loan_data_targets_test'],
                       df_actual_predicted_probs['y_hat_test_proba'])
@@ -374,18 +393,33 @@ AUROC = roc_auc_score(df_actual_predicted_probs['loan_data_targets_test'],
 # from a set of actual values and their predicted probabilities.
 AUROC
 
+df_auroc_values = pd.DataFrame(fpr, tpr, thresholds)
+df_auroc_values = pd.DataFrame({'fpr': fpr,'tpr':  tpr, 'thresholds': thresholds})
+
+optimail_threshold = max(df_auroc_values.fpr - df_auroc_values.tpr)
+
+## ----------------------------------------------------------------------
+# Gini and Kolmogorov-Smirnov S7.Chp 47
+## ----------------------------------------------------------------------
+
 ### Gini and Kolmogorov-Smirnov
+# To measure, the prerequisite is to sort the predicted probabilities (y_hat_test_probab) in ascending order (small to big).
+# To calculate the cumulative probabilities, we need to reset index to zero. The lowest probability will have an index of 0 (zero)
+# To make plots of our model performance criteria, we need
+#   1) The cumulative percentage % of the total population
+#   2) The cumulative percentage % of good borrowers
+#   3) The cumulative percentage % of bad borrowers.
+
 df_actual_predicted_probs = df_actual_predicted_probs.sort_values('y_hat_test_proba')
 # Sorts a dataframe by the values of a specific column.
 
-df_actual_predicted_probs.head()
-
-df_actual_predicted_probs.tail()
+# df_actual_predicted_probs.head()
+# df_actual_predicted_probs.tail()
 
 df_actual_predicted_probs = df_actual_predicted_probs.reset_index()
 # We reset the index of a dataframe and overwrite it.
 
-df_actual_predicted_probs.head()
+# df_actual_predicted_probs.head()
 
 df_actual_predicted_probs['Cumulative N Population'] = df_actual_predicted_probs.index + 1
 # We calculate the cumulative number of all observations.
@@ -394,8 +428,8 @@ df_actual_predicted_probs['Cumulative N Good'] = df_actual_predicted_probs['loan
 # We calculate cumulative number of 'good', which is the cumulative sum of the column with actual observations.
 df_actual_predicted_probs['Cumulative N Bad'] = df_actual_predicted_probs['Cumulative N Population'] - \
                                                 df_actual_predicted_probs['loan_data_targets_test'].cumsum()
-# We calculate cumulative number of 'bad', which is
-# the difference between the cumulative number of all observations and cumulative number of 'good' for each row.
+# We calculate cumulative number of 'bad', which is the difference between the cumulative number of all observations
+# and cumulative number of 'good' for each row.
 
 df_actual_predicted_probs.head()
 
@@ -409,9 +443,8 @@ df_actual_predicted_probs['Cumulative Perc Bad'] = df_actual_predicted_probs['Cu
             df_actual_predicted_probs.shape[0] - df_actual_predicted_probs['loan_data_targets_test'].sum())
 # We calculate the cumulative percentage of 'bad'.
 
-df_actual_predicted_probs.head()
-
-df_actual_predicted_probs.tail()
+# df_actual_predicted_probs.head()
+# df_actual_predicted_probs.tail()
 
 # Plot Gini
 plt.plot(df_actual_predicted_probs['Cumulative Perc Population'], df_actual_predicted_probs['Cumulative Perc Bad'])
