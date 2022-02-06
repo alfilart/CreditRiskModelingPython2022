@@ -328,8 +328,8 @@ del y_hat_test_proba
 # We create a new column with an indicator, where every observation that has predicted probability
 # greater than the threshold has a value of 1, and every observation that has predicted probability
 # lower than the threshold has a value of 0.
-tr = 0.9
-df_actual_predicted_probs['y_hat_test'] = np.where(df_actual_predicted_probs['y_hat_test_proba'] > tr, 1, 0)
+threshold = 0.8857 #optima threshold
+df_actual_predicted_probs['y_hat_test'] = np.where(df_actual_predicted_probs['y_hat_test_proba'] > threshold, 1, 0)
 
 # Creates a cross-table where the actual values are displayed by rows and the predicted values by columns.
 # This table is known as a Confusion Matrix.
@@ -350,8 +350,62 @@ pd.crosstab(df_actual_predicted_probs['loan_data_targets_test'], df_actual_predi
 conf_mtrx_pct = pd.crosstab(df_actual_predicted_probs['loan_data_targets_test'], df_actual_predicted_probs['y_hat_test'],
             rownames=['Actual'], colnames=['Predicted']) / df_actual_predicted_probs.shape[0]
 
-# Model Accuracy= True Neg + True Pos
-# Model Accuracy= True Neg + True Pos
+# ? Model Accuracy= True Neg + True Pos
+
+# --------------------------------------
+# another way of generating Conf. Matrix via sklearn
+# https://scikit-learn.org/stable/modules/generated/sklearn.metrics.ConfusionMatrixDisplay.html
+# --------------------------------------
+from sklearn.metrics import ConfusionMatrixDisplay
+from sklearn.metrics import confusion_matrix
+
+# Create the CM
+# cm = confusion_matrix(y_true, y_pred)
+cm = confusion_matrix(df_actual_predicted_probs['loan_data_targets_test'], df_actual_predicted_probs['y_hat_test'])
+#    0	 1
+# 0	TN	FN
+# 1	FP	TP
+
+# a) original
+cm_disp = ConfusionMatrixDisplay(cm, display_labels=['Negative', 'Positive'])
+# cm_disp = ConfusionMatrixDisplay(cm)  # display as 0 and 1
+plt.xlabel('Actual')
+plt.ylabel('Predicted')
+cm_disp.plot()
+
+# b) To see first cell as TP. Flip it using Numpy and feed it to the display function
+cm2 =  np.flip(cm, (0, 1))
+cm_disp2 = ConfusionMatrixDisplay(cm2, display_labels=['Positive', 'Negative'])
+plt.xlabel('Actual')
+plt.ylabel('Predicted')
+cm_disp2.plot()
+
+# Set variables to be used to calculate Evaluation Metrics
+tp = cm[1,1]
+tn = cm[0,0]
+fp = cm[0,1]
+fn = cm[1,0]
+
+# Evaluation Metrics
+# https://classeval.wordpress.com/introduction/basic-evaluation-measures/#:~:text=False%20positive%20rate%20(FPR)%20is,be%20calculated%20as%201%20%E2%80%93%20specificity.
+# 1) Accuracy
+m_accuracy = (tp + tn)/(tp + fp + fn + tn)
+# 2) Sensitivity or Recall or TPR (True positive rate)
+m_recall = tp/(tp + fn)
+# 3) Specificity or TNR (True Negative Rate)
+m_specificity = tn/(fp + tn)
+# 4) Precision  (Positive predictive value)
+m_precision = tp/(tp + fp)
+# 5) FPR or False positive rate
+m_fpr = fp/(tn + fp)
+# 5) F1 - Score
+m_F1_score = 2*((m_precision * m_accuracy)/(m_precision + m_accuracy))
+# Other notes: FP (type I error), FN (type II error)
+print('Threshold: {}'.format(round(threshold,4)))
+print('Model Accuracy: {}'.format(round(m_accuracy, 4)))
+print('Recall or TPR: {}; Specificity or TNR: {}'.format(round(m_recall, 4), round(m_specificity, 4)))
+print('Model Precision: {}, F1_score: {}'.format(round(m_precision, 4), round(m_F1_score, 4)))
+print('Confusion Matrix: {}'.format(cm))
 
 ## ----------------------------------------------------------------------
 # the Receiver Operating Characteristic (ROC) Curve S7.Chp 46
@@ -367,10 +421,18 @@ roc_curve(df_actual_predicted_probs['loan_data_targets_test'], df_actual_predict
 fpr, tpr, thresholds = roc_curve(df_actual_predicted_probs['loan_data_targets_test'],
                                  df_actual_predicted_probs['y_hat_test_proba'])
 
+# to convert the arrays into df, for later use like plotting
+df_roc_curve = pd.DataFrame({'FPR':fpr, 'TPR':tpr, 'Threshold':thresholds})
 
+# find row where threshold is
+df_roc_curve[df_roc_curve['Threshold'].round(4) == threshold]
+
+df_roc_curve[df_roc_curve['Threshold'] == threshold]
+
+
+# Plot ROC Curve
 import matplotlib.pyplot as plt
 import seaborn as sns
-
 sns.set()
 
 plt.plot(fpr, tpr)
@@ -379,6 +441,9 @@ plt.plot(fpr, tpr)
 plt.plot(fpr, fpr, linestyle='--', color='k')
 # We plot a seconary diagonal line, with dashed line style and black color.
 # The diagnol straight line can be created by providng the same data for both x and y (ex. fpr, fpr)
+
+# plt.plot()
+
 plt.xlabel('False positive rate')
 # We name the x-axis "False positive rate".
 plt.ylabel('True positive rate')
@@ -387,16 +452,37 @@ plt.title('ROC curve')
 # We name the graph "ROC curve".
 plt.show()
 
+# --------------------------------------------
+# AUROC
+# --------------------------------------------
 AUROC = roc_auc_score(df_actual_predicted_probs['loan_data_targets_test'],
                       df_actual_predicted_probs['y_hat_test_proba'])
 # Calculates the Area Under the Receiver Operating Characteristic Curve (AUROC)
 # from a set of actual values and their predicted probabilities.
 AUROC
 
-df_auroc_values = pd.DataFrame(fpr, tpr, thresholds)
-df_auroc_values = pd.DataFrame({'fpr': fpr,'tpr':  tpr, 'thresholds': thresholds})
 
-optimail_threshold = max(df_auroc_values.fpr - df_auroc_values.tpr)
+# --------------------------------------------
+# Get the optimal threshold
+# G-mean method
+# --------------------------------------------
+
+# Calculate the G-mean and store as array
+gmean = np.sqrt(tpr * (1 - fpr))
+
+# Find the optimal threshold. Where the gmean is maximum
+# argmax= Returns the indices of the maximum values along an axis.
+index = np.argmax(gmean)
+thresholdOpt = round(thresholds[index], ndigits = 4)  # 0.8857
+gmeanOpt = round(gmean[index], ndigits = 4)
+fprOpt = round(fpr[index], ndigits = 4)
+tprOpt = round(tpr[index], ndigits = 4)
+print('Best Threshold: {} with G-Mean: {}'.format(thresholdOpt, gmeanOpt))
+print('FPR: {}, TPR: {}'.format(fprOpt, tprOpt))
+
+# to convert arrays into DF for further analysis
+# df_auroc_values = pd.DataFrame({'fpr': fpr,'tpr':  tpr, 'thresholds': thresholds})
+
 
 ## ----------------------------------------------------------------------
 # Gini and Kolmogorov-Smirnov S7.Chp 47
