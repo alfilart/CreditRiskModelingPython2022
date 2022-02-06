@@ -427,23 +427,27 @@ df_roc_curve = pd.DataFrame({'FPR':fpr, 'TPR':tpr, 'Threshold':thresholds})
 # find row where threshold is
 df_roc_curve[df_roc_curve['Threshold'].round(4) == threshold]
 
-df_roc_curve[df_roc_curve['Threshold'] == threshold]
+df_roc_curve[(df_roc_curve['TPR'] >= round(m_recall-0.0001,6)) & (df_roc_curve['TPR'] <= round(m_recall+0.0001,6))]
 
+#index FPR TPR Threshold (orig param = 0.8857
+# 6643  0.348773  0.645214   0.885705
 
 # Plot ROC Curve
 import matplotlib.pyplot as plt
 import seaborn as sns
 sns.set()
 
-plt.plot(fpr, tpr)
+plt.plot(fpr, tpr, linestyle='-', color='b')
 # We plot the false positive rate along the x-axis and the true positive rate along the y-axis,
 # thus plotting the ROC curve.
 plt.plot(fpr, fpr, linestyle='--', color='k')
 # We plot a seconary diagonal line, with dashed line style and black color.
 # The diagnol straight line can be created by providng the same data for both x and y (ex. fpr, fpr)
-
-# plt.plot()
-
+x = 0.348773
+y = 0.645214
+# Mark single point. https://matplotlib.org/stable/api/markers_api.html
+plt.plot(0.348773, 0.645214,  marker="o", markersize=10, markeredgecolor="red", markerfacecolor="green")
+plt.annotate("Optimal Threshold = 0.885705", (x + .05, y -.01))
 plt.xlabel('False positive rate')
 # We name the x-axis "False positive rate".
 plt.ylabel('True positive rate')
