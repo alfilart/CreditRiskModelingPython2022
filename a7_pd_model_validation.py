@@ -360,26 +360,86 @@ from sklearn.metrics import ConfusionMatrixDisplay
 from sklearn.metrics import confusion_matrix
 
 # Create the CM
-# cm = confusion_matrix(y_true, y_pred)
-cm = confusion_matrix(df_actual_predicted_probs['loan_data_targets_test'], df_actual_predicted_probs['y_hat_test'])
+# cm = confusion_matrix(y_true, y_pred, *, labels=None, sample_weight=None, normalize=None)
+
+#create y_true classes in string 'Good' and 'Default'
+df_actual_predicted_probs['loan_data_targets_test_label'] = np.where((df_actual_predicted_probs['loan_data_targets_test'] == 1),'Good','Default')
+df_actual_predicted_probs['y_hat_test_label'] = np.where((df_actual_predicted_probs['y_hat_test'] == 1),'Good','Default')
+
+cm = confusion_matrix(df_actual_predicted_probs['loan_data_targets_test_label'], df_actual_predicted_probs['y_hat_test_label'])
 #    0	 1
 # 0	TN	FN
 # 1	FP	TP
 
+
+# Display Confusion Matrix
+import matplotlib.pyplot as plt
+import seaborn as sns
+sns.set()
+
 # a) original
-cm_disp = ConfusionMatrixDisplay(cm, display_labels=['Negative', 'Positive'])
 # cm_disp = ConfusionMatrixDisplay(cm)  # display as 0 and 1
+cm_disp = ConfusionMatrixDisplay(cm, display_labels=['Default','Good']) # display_labels=['Negative', 'Positive']
+# plt.title('Confusion matrix of Good and Default(Bad). v1')
 plt.xlabel('Actual')
 plt.ylabel('Predicted')
-cm_disp.plot()
+plt.show()
+# cm_disp.plot()
 
 # b) To see first cell as TP. Flip it using Numpy and feed it to the display function
-cm2 =  np.flip(cm, (0, 1))
-cm_disp2 = ConfusionMatrixDisplay(cm2, display_labels=['Positive', 'Negative'])
-plt.xlabel('Actual')
-plt.ylabel('Predicted')
+# cm2 =  np.flip(cm, (0, 1))
+cm_disp2 = ConfusionMatrixDisplay(cm2, display_labels=['Good', 'Default']) # display_labels=['Positive', 'Negative']
+plt.title('Confusion matrix of Good and Default(Bad). v2')
+plt.xlabel('Predicted')
+plt.ylabel('Actual')
+# plt.show()
 cm_disp2.plot()
 
+# c) https://stackoverflow.com/questions/19233771/sklearn-plot-confusion-matrix-with-labels
+# cm2 =  np.flip(cm, (0, 1))
+# print(cm2)
+# cax means AexesImage object
+labels = ['Good', 'Default']
+fig = plt.figure()
+ax = fig.add_subplot(111) #111
+cax = ax.matshow(cm2)
+plt.title('Confusion matrix of Good and Default(Bad). v3')
+fig.colorbar(cax)
+ax.set_xticklabels([''] + labels)
+ax.set_yticklabels([''] + labels)
+plt.xlabel('Predicted')
+plt.ylabel('Actual')
+plt.show()
+
+# d) using plt and sns combination.
+# https://www.codegrepper.com/code-examples/python/sklearn+confusion+matrix+display+string
+# plot_confusion_matrix(reg, X, y)
+# plt.show()
+
+#   using sns.heatmap()
+# https://www.stackvidhya.com/plot-confusion-matrix-in-python-and-why/
+# seaborn heatmap docs: http://seaborn.pydata.org/generated/seaborn.heatmap.html#seaborn.heatmap
+# matplot lib defaults and colors: https://matplotlib.org/stable/users/prev_whats_new/dflt_style_changes.html#:~:text=To%20keep%20the%20figure%20the,8%20inches.
+# set heatmap colors ! : https://www.python-graph-gallery.com/92-control-color-in-seaborn-heatmaps
+# ax means AexesSubplot object
+
+fig, ax = plt.subplots(figsize=(8,6))   # Sample figsize in inches (default is 6.4x4.8 ") ration of y*1.5
+ax = sns.heatmap(cm2,annot=True, cmap='OrRd', fmt='d', ax=ax)  # OrRd or YlGnBu
+ax.set_title('Confusion Matrix Predicted vs Actual\n'); # \n to add carriage return (spaceing)
+ax.set_xlabel('Predicted Values')
+ax.set_ylabel('Actual Values');
+## Ticket labels - List must be in alphabetical order
+ax.xaxis.set_ticklabels(['Good', 'Default'])
+ax.yaxis.set_ticklabels(['Good', 'Default'])
+# add commas in the digits. To have $ use, '${:,d}' or Eur '€{:,d}'
+for t in ax.texts:
+    t.set_text('{:,d}'.format(int(t.get_text())))
+plt.show()
+
+# e) Plot Confusion Matrix For Binary Classes With Labels And Percentages
+# https://www.stackvidhya.com/plot-confusion-matrix-in-python-and-why/
+
+# --------------------------------------------
 # Set variables to be used to calculate Evaluation Metrics
 tp = cm[1,1]
 tn = cm[0,0]
@@ -403,9 +463,10 @@ m_F1_score = 2*((m_precision * m_accuracy)/(m_precision + m_accuracy))
 # Other notes: FP (type I error), FN (type II error)
 print('Threshold: {}'.format(round(threshold,4)))
 print('Model Accuracy: {}'.format(round(m_accuracy, 4)))
-print('Recall or TPR: {}; Specificity or TNR: {}'.format(round(m_recall, 4), round(m_specificity, 4)))
+print('Sensitivity or Recall (TPR): {}; Specificity (TNR): {}'.format(round(m_recall, 4), round(m_specificity, 4)))
 print('Model Precision: {}, F1_score: {}'.format(round(m_precision, 4), round(m_F1_score, 4)))
-print('Confusion Matrix: {}'.format(cm))
+print('Confusion Matrix: {}'.format(cm2))
+cm_disp2.plot()
 
 ## ----------------------------------------------------------------------
 # the Receiver Operating Characteristic (ROC) Curve S7.Chp 46
@@ -433,10 +494,6 @@ df_roc_curve[(df_roc_curve['TPR'] >= round(m_recall-0.0001,6)) & (df_roc_curve['
 # 6643  0.348773  0.645214   0.885705
 
 # Plot ROC Curve
-import matplotlib.pyplot as plt
-import seaborn as sns
-sns.set()
-
 plt.plot(fpr, tpr, linestyle='-', color='b')
 # We plot the false positive rate along the x-axis and the true positive rate along the y-axis,
 # thus plotting the ROC curve.
