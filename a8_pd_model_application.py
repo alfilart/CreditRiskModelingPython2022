@@ -14,6 +14,7 @@ from numpy import genfromtxt
 inputs_test_with_ref_cat = pd.read_csv('data/inputs_test_with_ref_cat.csv', index_col=0) # header=None)
 summary_table = pd.read_csv('data/summary_table.csv', index_col=0)
 y_hat_test_proba = genfromtxt('data/y_hat_test_proba.csv', delimiter=',')
+df_actual_predicted_probs = pd.read_csv('data/df_actual_predicted_probs.csv', index_col=0)
 
 ref_categories_list = ['grade:G',
                        'home_ownership:RENT_OTHER_NONE_ANY',
@@ -73,7 +74,7 @@ df_scorecard['Original feature name'] = df_scorecard['Feature name'].str.split('
 # We create a new column, called 'Original feature name', which contains the value of the 'Feature name' column,
 # up to the column symbol.
 
-df_scorecard = df_scorecard.sort_values(['Original feature name','Feature name'])
+# df_scorecard = df_scorecard.sort_values(['Original feature name','Feature name'])
 # sort by orig feat name
 df_scorecard = df_scorecard.reset_index()
 # We reset the index of a dataframe.
@@ -95,10 +96,12 @@ max_sum_coef = df_scorecard.groupby('Original feature name')['Coefficients'].max
 # Up to the 'min()' method everything is the same as in te line above.
 # Then, we aggregate further and sum all the maximum values.
 
+
 df_scorecard['Score - Calculation'] = df_scorecard['Coefficients'] * (max_score - min_score) / (max_sum_coef - min_sum_coef)
 # We multiply the value of the 'Coefficients' column by the ration of the differences between
 # maximum score and minimum score and maximum sum of coefficients and minimum sum of cefficients.
 
+# Fix the intercept value
 df_scorecard['Score - Calculation'][0] = ((df_scorecard['Coefficients'][0] - min_sum_coef) / (max_sum_coef - min_sum_coef)) * (max_score - min_score) + min_score
 # We divide the difference of the value of the 'Coefficients' column and the minimum sum of coefficients by
 # the difference of the maximum sum of coefficients and the minimum sum of coefficients.
@@ -113,7 +116,6 @@ min_sum_score_prel = df_scorecard.groupby('Original feature name')['Score - Prel
 # Aggregates the data in the 'Coefficients' column, calculating their minimum.
 # Sums all minimum values.
 
-
 max_sum_score_prel = df_scorecard.groupby('Original feature name')['Score - Preliminary'].max().sum()
 # Groups the data by the values of the 'Original feature name' column.
 # Aggregates the data in the 'Coefficients' column, calculating their maximum.
@@ -123,12 +125,15 @@ max_sum_score_prel = df_scorecard.groupby('Original feature name')['Score - Prel
 
 df_scorecard['Difference'] = df_scorecard['Score - Preliminary'] - df_scorecard['Score - Calculation']
 
-df_scorecard.sort_values('Difference',ascending=False)
-
+# df_scorecard.sort_values('Difference',ascending=False)
 df_scorecard['Score - Final'] = df_scorecard['Score - Preliminary']
-df_scorecard['Score - Final'][35] = 29
-df_scorecard['Score - Final'][22] = 11
 
+# fix end points by rounding errors at the end to make i 300 (get the min diff and round up) 850 (get the max diff and round down)
+# df_scorecard.groupby('Original feature name')['Score - Preliminary'].min().sort_values(ascending=True)
+# df_scorecard.groupby('Original feature name')['Score - Preliminary'].max().sort_values(ascending=True)
+# df_scorecard.groupby('Original feature name')['Difference'].max().sort_values(ascending=True)
+df_scorecard['Score - Preliminary'][55] = -5
+df_scorecard['Score - Preliminary'][68] = 29
 
 min_sum_score_prel = df_scorecard.groupby('Original feature name')['Score - Final'].min().sum()
 # Groups the data by the values of the 'Original feature name' column.
@@ -140,11 +145,9 @@ max_sum_score_prel = df_scorecard.groupby('Original feature name')['Score - Fina
 # Aggregates the data in the 'Coefficients' column, calculating their maximum.
 # Sums all maximum values.
 
-##Caclulating Credit Score
-inputs_test_with_ref_cat.head()
-
-df_scorecard
-
+## ----------------------------------------------------------------------
+## s8. chp 50: Caclulating Credit Score
+## ----------------------------------------------------------------------
 inputs_test_with_ref_cat_w_intercept = inputs_test_with_ref_cat
 
 inputs_test_with_ref_cat_w_intercept.insert(0, 'Intercept', 1)
@@ -155,23 +158,23 @@ inputs_test_with_ref_cat_w_intercept.insert(0, 'Intercept', 1)
 inputs_test_with_ref_cat_w_intercept = inputs_test_with_ref_cat_w_intercept[df_scorecard['Feature name'].values]
 # Here, from the 'inputs_test_with_ref_cat_w_intercept' dataframe, we keep only the columns with column names,
 # exactly equal to the row values of the 'Feature name' column from the 'df_scorecard' dataframe.
+# The values attribute ouputs a list
 
 scorecard_scores = df_scorecard['Score - Final']
 
-inputs_test_with_ref_cat_w_intercept.shape # (93257, 102)
-
-scorecard_scores.shape # (102,)
-
+# before multiplying df with dummies by scores, we need they have compatible dimension
+#inputs_test_with_ref_cat_w_intercept.shape # (93257, 102)
+# scorecard_scores.shape # (102,)
+# there is no second dimiension and this can be an issue. Functions like multiplication  requires matching dimensions
 scorecard_scores = scorecard_scores.values.reshape(102, 1)
 ### study pandas df dot. Why  df1 col y (93257, 102) is multiplied by df2 rows (102,1)
-scorecard_scores.shape (102, 1)
+scorecard_scores.shape # (102, 1)
 
 y_scores = inputs_test_with_ref_cat_w_intercept.dot(scorecard_scores)
-# Here we multiply the values of each row of the dataframe by the values of each column of the variable,
-# which is an argument of the 'dot' method, and sum them. It's essentially the sum of the products.
+# Here we multiply the values of each row of the test data df (dummy variables 0 & 1) by the column with their respective scores,
+# then sum it up for each row. Which is an argument of the 'dot' method. It's essentially the "sum of the products"
 
 y_scores.head()
-
 y_scores.tail()
 
 
@@ -183,26 +186,32 @@ sum_coef_from_score = ((y_scores - min_score) / (max_score - min_score)) * (max_
 # Then, we add the minimum sum of coefficients.
 
 y_hat_proba_from_score = np.exp(sum_coef_from_score) / (np.exp(sum_coef_from_score) + 1)
-# Here we divide an exponent raised to sum of coefficients from score by
-# an exponent raised to sum of coefficients from score plus one.
+# The exponent raised to sum of coefficients from score divided by
+# the exponent raised to sum of coefficients from score plus one.
 y_hat_proba_from_score.head()
 
 y_hat_test_proba[0: 5]
 
 df_actual_predicted_probs['y_hat_test_proba'].head()
 
-
-##Setting Cut-offs
+## ----------------------------------------------------------------------
+## s8 chp 53: Setting Cut-offs
+## ----------------------------------------------------------------------
 # We need the confusion matrix again.
-#np.where(np.squeeze(np.array(loan_data_targets_test)) == np.where(y_hat_test_proba >= tr, 1, 0), 1, 0).sum() / loan_data_targets_test.shape[0]
-tr = 0.9
-df_actual_predicted_probs['y_hat_test'] = np.where(df_actual_predicted_probs['y_hat_test_proba'] > tr, 1, 0)
-#df_actual_predicted_probs['loan_data_targets_test'] == np.where(df_actual_predicted_probs['y_hat_test_proba'] >= tr, 1, 0)
+# np.where(np.squeeze(np.array(loan_data_targets_test)) == np.where(y_hat_test_proba >= tr, 1, 0), 1, 0).sum() / loan_data_targets_test.shape[0]
+threshold = 0.9
+df_actual_predicted_probs['y_hat_test'] = np.where(df_actual_predicted_probs['y_hat_test_proba'] > threshold, 1, 0)
+#df_actual_predicted_probs['loan_data_targets_test'] == np.where(df_actual_predicted_probs['y_hat_test_proba'] >= threshold, 1, 0)
 
+# Creates a cross-table where the actual values are displayed by rows and the predicted values by columns.
+# This table is known as a Confusion Matrix.
 pd.crosstab(df_actual_predicted_probs['loan_data_targets_test'], df_actual_predicted_probs['y_hat_test'], rownames = ['Actual'], colnames = ['Predicted'])
 
+# Here we divide each value of the table by the total number of observations,
+# thus getting percentages, or, rates.
 pd.crosstab(df_actual_predicted_probs['loan_data_targets_test'], df_actual_predicted_probs['y_hat_test'], rownames = ['Actual'], colnames = ['Predicted']) / df_actual_predicted_probs.shape[0]
 
+# Here we calculate Accuracy of the model, which is the sum of the diagonal rates.
 (pd.crosstab(df_actual_predicted_probs['loan_data_targets_test'], df_actual_predicted_probs['y_hat_test'], rownames = ['Actual'], colnames = ['Predicted']) / df_actual_predicted_probs.shape[0]).iloc[0, 0] + (pd.crosstab(df_actual_predicted_probs['loan_data_targets_test'], df_actual_predicted_probs['y_hat_test'], rownames = ['Actual'], colnames = ['Predicted']) / df_actual_predicted_probs.shape[0]).iloc[1, 1]
 
 from sklearn.metrics import roc_curve, roc_auc_score
@@ -225,23 +234,24 @@ thresholds
 
 thresholds.shape
 
-df_cutoffs = pd.concat([pd.DataFrame(thresholds), pd.DataFrame(fpr), pd.DataFrame(tpr)], axis = 1)
 # We concatenate 3 dataframes along the columns.
+df_cutoffs = pd.concat([pd.DataFrame(thresholds), pd.DataFrame(fpr), pd.DataFrame(tpr)], axis = 1)
 
+# We rename the columns of the dataframe 'thresholds', 'fpr', and 'tpr'.
 df_cutoffs.columns = ['thresholds', 'fpr', 'tpr']
-# We name the columns of the dataframe 'thresholds', 'fpr', and 'tpr'.
+
 
 df_cutoffs.head()
 
 df_cutoffs['thresholds'][0] = 1 - 1 / np.power(10, 16)
+
 # Let the first threshold (the value of the thresholds column with index 0) be equal to a number, very close to 1
 # but smaller than 1, say 1 - 1 / 10 ^ 16.
 
 df_cutoffs['Score'] = ((np.log(df_cutoffs['thresholds'] / (1 - df_cutoffs['thresholds'])) - min_sum_coef) * ((max_score - min_score) / (max_sum_coef - min_sum_coef)) + min_score).round()
 # The score corresponsing to each threshold equals:
 # The the difference between the natural logarithm of the ratio of the threshold and 1 minus the threshold and
-# the minimum sum of coefficients
-# multiplied by
+# the minimum sum of coefficients multiplied by
 # the sum of the minimum score and the ratio of the difference between the maximum score and minimum score and
 # the difference between the maximum sum of coefficients and the minimum sum of coefficients.
 
@@ -257,25 +267,39 @@ df_cutoffs.tail()
 # is greater than the parameter p, which is a threshold, and a value of 0, if it is not.
 # Then it sums the column.
 # Thus, if given any percentage values, the function will return
-# the number of rows wih estimated probabilites greater than the threshold.
+# the number of rows(or peeople) wih estimated probabilites greater than the threshold. approved people
 def n_approved(p):
     return np.where(df_actual_predicted_probs['y_hat_test_proba'] >= p, 1, 0).sum()
 
 df_cutoffs['N Approved'] = df_cutoffs['thresholds'].apply(n_approved)
+# this is a double loop. 1st loop i is going thru the rows of the thresholds,
+# for each treshaolds, it loops j at the population of 93,257 is sorted if they are above cut-off, and this iterated number is summed.
+
 # Assuming that all credit applications above a given probability of being 'good' will be approved,
 # when we apply the 'n_approved' function to a threshold, it will return the number of approved applications.
 # Thus, here we calculate the number of approved appliations for al thresholds.
-df_cutoffs['N Rejected'] = df_actual_predicted_probs['y_hat_test_proba'].shape[0] - df_cutoffs['N Approved']
+
 # Then, we calculate the number of rejected applications for each threshold.
 # It is the difference between the total number of applications and the approved applications for that threshold.
-df_cutoffs['Approval Rate'] = df_cutoffs['N Approved'] / df_actual_predicted_probs['y_hat_test_proba'].shape[0]
+df_cutoffs['N Rejected'] = df_actual_predicted_probs['y_hat_test_proba'].shape[0] - df_cutoffs['N Approved']
+
 # Approval rate equalts the ratio of the approved applications and all applications.
-df_cutoffs['Rejection Rate'] = 1 - df_cutoffs['Approval Rate']
+df_cutoffs['Approval Rate'] = df_cutoffs['N Approved'] / df_actual_predicted_probs['y_hat_test_proba'].shape[0]
+
 # Rejection rate equals one minus approval rate.
+df_cutoffs['Rejection Rate'] = 1 - df_cutoffs['Approval Rate']
+
 
 df_cutoffs.head()
 
 df_cutoffs.tail()
+df_cutoffs[(df_cutoffs['thresholds'] >= 0.88560) and (df_cutoffs['thresholds'] <= 0.88579)]
+
+df_cutoffs[(df_cutoffs['thresholds'] > 0.885675) & (df_cutoffs['thresholds'] < 0.88678)]
+df[(df[col] > 0.5) & (df[col] < 0.7)]
+
+# threshold = 0.8857
+
 
 df_cutoffs.iloc[5000: 6200, ]
 # Here we display the dataframe with cutoffs form line with index 5000 to line with index 6200.
@@ -283,7 +307,7 @@ df_cutoffs.iloc[5000: 6200, ]
 df_cutoffs.iloc[1000: 2000, ]
 # Here we display the dataframe with cutoffs form line with index 1000 to line with index 2000.
 
-inputs_train_with_ref_cat.to_csv('inputs_train_with_ref_cat.csv')
+df_cutoffs.to_csv('data/df_cutoffs.csv')
 
-df_scorecard.to_csv('df_scorecard.csv')
+df_scorecard.to_csv('data/df_scorecard.csv')
 

@@ -54,5 +54,15 @@ loan_data_targets_test = pd.read_feather('data/loan_data_targets_test.feather').
 
 
 
-
+#*****************
+# chunk / chunking big csv files
+# importing big csv files by chunk if you are RAM low.
+df2 = pd.read_csv('et_users.csv', header=None, names=names2, chunksize=100000)
+chunks=[]  # use list to append as it is optimal than a df.
+for chunk in df2:
+    chunk['ID'] = chunk.ID.map(rep.set_index('member_id')['panel_mm_id'])
+    chunks.append(chunk)
+# convert list to df then concat
+chunks = pd.DataFrame(chunks)
+df2 = pd.concat([chunks], ignore_index=True)
 

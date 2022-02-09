@@ -255,6 +255,13 @@ del p_values
 # Here, we get the results for our final PD model. we export our model to a 'SAV' file with file name 'pd_model.sav'. wb = write binary
 pickle.dump(reg, open('data/pd_model.sav', 'wb'))
 
+# export to csv for sec 8
+# inputs_test_with_ref_cat.to_csv('data/inputs_test_with_ref_cat.csv')
+# summary_table.to_csv('data/summary_table.csv')
+# np.savetxt('data/categories_with_ref_list.csv', categories_with_ref_list, delimiter =", ", fmt ='%s') # data format as string '%s'
+# np.savetxt('data/ref_categories_list.csv', ref_categories_list, delimiter =", ", fmt ='%s') # data format as string '%s'
+# np.savetxt('data/y_hat_test_proba.csv', y_hat_test_proba, delimiter =", ", fmt ='%s') # data format as string '%s'
+
 ## ********************************************************************************
 ## 3 ) PD Model Validation (Test)
 ## ********************************************************************************
@@ -320,6 +327,11 @@ df_actual_predicted_probs.head()
 # delete unused variables
 del y_hat_test
 del y_hat_test_proba
+
+# export to csv for sec 8
+# df_actual_predicted_probs.to_csv('data/df_actual_predicted_probs.csv')
+
+
 ## ----------------------------------------------------------------------
 ## Part 3.B) Get Accuracy and Area under the Curve. Visualize via graph
 ## ----------------------------------------------------------------------
