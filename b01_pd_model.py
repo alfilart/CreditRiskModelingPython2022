@@ -205,89 +205,11 @@ df_targets_prep = loan_data_targets_train
 
 import b02_pd_model_class as pddf
 
-pd_inputs = pddf.PrepPandas(loan_data)
+mdl = pddf.PDdataframe(loan_data)
 
-pd_inputs.columns
-
-pdf = pddf.PrepPandas({'a': [1,2,3], 'b':[4,5,6]})
-pdf.columns
-
-pdf2 = pddf.MyDataframe({'a': [1,2,3], 'b':[4,5,6]})
+mdl = pddf.PDdataframe()
 
 mdl = pddf.PDdataframe()
 
 # ---- df1_grade : no combining needed ---
 df_temp = mdl.woe_discrete('grade',df_targets_prep)
-
-pddf.PrepPandas()
-
-pdf = pddf.PrepPandas({'a': [1,2,3], 'b':[4,5,6]})  # Creates a pandas df.
-
-# ==============
-import pandas as pd
-import numpy as np
-
-
-
-
-#------------
-# #@property
-#  https://www.freecodecamp.org/news/python-property-decorator/#:~:text=The%20%40property%20is%20a%20built,define%20properties%20in%20a%20class.
-
-import pandas as pd
-
-class MyDataframe(pd.DataFrame):
-
-    def __init__(self, *args, **kwargs):
-        super(MyDataframe, self).__init__(*args, **kwargs)
-
-    def sum_column(self, column_name):
-        return self[column_name].sum()
-
-
-
-#------------
-
-d = {
-    'A': [1, 2, 3],
-    'B': [4, 5, 6],
-    'C': [7, 8, 9]
-}
-
-b = MyDataframe(d)
-
-b.columns
-b.shape
-b['A']
-
-b.sum_column('A')
-
-#---------------
-import b_pd_model_class as pddf
-
-d = {
-    'A': [1, 2, 3],
-    'B': [4, 5, 6],
-    'C': [7, 8, 9]
-}
-
-c = pddf.PdDataframe(d)
-c.columns
-c.shape
-c['A']
-
-c.sum_column('A')
-
-del c
-#---------------
-import b_pd_model_class as pddf
-
-d = pddf.PdDataframe(loan_data)
-d.columns
-d.shape
-d.info()
-d['dti']
-d.sum_column('dti')
-
-d.groupby_sum('addr_state','annual_inc','mean')
-
