@@ -177,8 +177,9 @@ y_scores = inputs_test_with_ref_cat_w_intercept.dot(scorecard_scores)
 y_scores.head()
 y_scores.tail()
 
-
-##From Credit Score to PD
+## ----------------------------------------------------------------------
+## s8 chp 52: From Credit Score to PD
+## ----------------------------------------------------------------------
 sum_coef_from_score = ((y_scores - min_score) / (max_score - min_score)) * (max_sum_coef - min_sum_coef) + min_sum_coef
 # We divide the difference between the scores and the minimum score by
 # the difference between the maximum score and the minimum score.
