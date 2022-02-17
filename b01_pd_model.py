@@ -280,7 +280,7 @@ c.sum_column('A')
 
 del c
 #---------------
-import b_pd_model_class as pddf
+import b02_pd_model_class as pddf
 
 d = pddf.PdDataframe(loan_data)
 d.columns

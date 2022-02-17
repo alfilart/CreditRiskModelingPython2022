@@ -1,36 +1,31 @@
-# Class DataFrame inputs
-# https://stackoverflow.com/questions/29459186/building-class-that-inherits-pandas-dataframe/48507776
 
-
-# https://stackoverflow.com/questions/70125762/python-creating-classes-calculation-methods-with-dataframe-inputs
-
+# Class that inherits from pandas.DataFrame then customizes it with additonal methods.
 
 from pandas import DataFrame
 
-class MyDataframe(DataFrame):
-    #Class that inherits from pandas.DataFrame then customizes it with additonal methods.
+class PdDataframe(DataFrame):
+    # constuctor
     def __init__(self, *args, **kwargs):
       super().__init__(*args, **kwargs)
 
-    @property
-    def _constructor(self):
-        return MyDataframe
+    # @property
+    # def _constructor(self):
+    #     return MyDataframe
 
     def sum_column(self, column_name):
         return self[column_name].sum()
 
-'''
-# v2
-#import libraries
-from pandas import DataFrame
+    def groupby_sum(self, groupby_col, aggregate_col, aggregate_method):
 
-class PrepPandas(DataFrame):
-    #Class that inherits from pandas.DataFrame then customizes it with additonal methods.
-    def __init__(self, *args, **kwargs):
-      super().__init__(*args, **kwargs)
+        if aggregate_method == 'sum':
+            df = self.groupby(groupby_col)[aggregate_col].sum()
+        elif aggregate_method == 'mean':
+            df = self.groupby(groupby_col)[aggregate_col].mean()
+        else:
+            df = self.groupby(groupby_col)[aggregate_col].count()
+        return df
 
-    @property
-    def _constructor(self):
-        return PrepPandas
+    # destructor
+    def __del__(self):
+        print('Object destroyed')
 
-'''
