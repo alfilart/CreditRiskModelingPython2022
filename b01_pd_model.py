@@ -182,8 +182,7 @@ loan_data['good_bad'] = np.where(loan_data['loan_status'].isin(['Charged Off', '
 
 from sklearn.model_selection import train_test_split
 
-loan_data_inputs_train, loan_data_inputs_test, loan_data_targets_train, loan_data_targets_test \
-    = train_test_split(loan_data.drop('good_bad', axis=1), loan_data['good_bad'], test_size= 0.2, random_state = 42)
+loan_data_inputs_train, loan_data_inputs_test, loan_data_targets_train, loan_data_targets_test = train_test_split(loan_data.drop('good_bad', axis=1), loan_data['good_bad'], test_size= 0.2, random_state = 42)
 print('loan_data_inputs_train.shape = ' + str(loan_data_inputs_train.shape))
 print('loan_data_inputs_test.shape = ' + str(loan_data_inputs_test.shape))
 
@@ -203,91 +202,27 @@ df_targets_prep = loan_data_targets_train
 # df_targets_prep = loan_data_targets_test
 #-----------------------------------------
 
-import b02_pd_model_class as pddf
-
-pd_inputs = pddf.PrepPandas(loan_data)
-
-pd_inputs.columns
-
-pdf = pddf.PrepPandas({'a': [1,2,3], 'b':[4,5,6]})
-pdf.columns
-
-pdf2 = pddf.MyDataframe({'a': [1,2,3], 'b':[4,5,6]})
-
-mdl = pddf.PDdataframe()
-
-# ---- df1_grade : no combining needed ---
-df_temp = mdl.woe_discrete('grade',df_targets_prep)
-
-pddf.PrepPandas()
-
-pdf = pddf.PrepPandas({'a': [1,2,3], 'b':[4,5,6]})  # Creates a pandas df.
-
-# ==============
-import pandas as pd
-import numpy as np
-
-
-
-
-#------------
-# #@property
-#  https://www.freecodecamp.org/news/python-property-decorator/#:~:text=The%20%40property%20is%20a%20built,define%20properties%20in%20a%20class.
-
-import pandas as pd
-
-class MyDataframe(pd.DataFrame):
-
-    def __init__(self, *args, **kwargs):
-        super(MyDataframe, self).__init__(*args, **kwargs)
-
-    def sum_column(self, column_name):
-        return self[column_name].sum()
-
-
-
-#------------
-
-d = {
-    'A': [1, 2, 3],
-    'B': [4, 5, 6],
-    'C': [7, 8, 9]
-}
-
-b = MyDataframe(d)
-
-b.columns
-b.shape
-b['A']
-
-b.sum_column('A')
-
 #---------------
-import b_pd_model_class as pddf
+# Class test
 
-d = {
-    'A': [1, 2, 3],
-    'B': [4, 5, 6],
-    'C': [7, 8, 9]
-}
-
-c = pddf.PdDataframe(d)
-c.columns
-c.shape
-c['A']
-
-c.sum_column('A')
-
-del c
-#---------------
+import importlib
 import b02_pd_model_class as pddf
+# importlib.reload(pddf)
 
 d = pddf.PdDataframe(loan_data)
-d.columns
-d.shape
-d.info()
-d['dti']
+# d.columns
+# d.shape
+# d.info()
+# d['dti']
 d.sum_column('dti')
 
-d.groupby_sum('addr_state','annual_inc','mean')
+# d.groupby_sum('addr_state','annual_inc','mean')
+# del d
+
+#---------------
+# Class test woe_discrete
+
+# ---- df1_grade : no combining needed ---
+df_temp = d.woe_discrete('grade',df_targets_prep)
+# plot_by_woe(df_temp)
 
