@@ -477,8 +477,8 @@ def woe_ordered_continuous(df, discrete_variabe_name, good_bad_variable_df):
     df['prop_n_good'] = df['n_good'] / df['n_good'].sum()
     df['prop_n_bad'] = df['n_bad'] / df['n_bad'].sum()
     df['WoE'] = np.log(df['prop_n_good'] / df['prop_n_bad'])
-   df = df.sort_values(['WoE'])
-   df = df.reset_index(drop = True)
+    df = df.sort_values(['WoE'])
+    df = df.reset_index(drop = True)
     df['diff_prop_good'] = df['prop_good'].diff().abs()
     df['diff_WoE'] = df['WoE'].diff().abs()
     df['IV'] = (df['prop_n_good'] - df['prop_n_bad']) * df['WoE']

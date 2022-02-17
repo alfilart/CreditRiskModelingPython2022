@@ -41,21 +41,26 @@ loan_data_2007_2014.csv = raw data set
 #*********************************
 #SECTION 4: General Preprocessing - Independent Variables Used
 #*********************************
+
 ## Preprocessing of Continuous variables
-emp_length -> emp_length_int
-earliest_cr_line -> mths_since_earliest_cr_line
-term -> term_int
-issue_d -> mths_since_issue_d
+# change datatypes of strings as integers and dates
+# change dates to int using reference date
+earliest_cr_line ->mths_since_earliest_cr_line
+emp_length ->emp_length_int
+issue_d ->mths_since_issue_d
+term ->term_int
 
 ## Preprocessing Discrete variables
+# create initial dummies via pd.get_dummies() featurename:1 or 0
+# func will create dummies for each category in each feature.
+addr_state
 grade
-sub_grade
 home_ownership
-verification_status
+initial_list_status
 loan_status
 purpose
-addr_state
-initial_list_status
+sub_grade
+verification_status
 
 # Others:  Check for missing values and clean
 total_rev_hi_lim
