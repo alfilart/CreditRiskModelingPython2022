@@ -186,43 +186,17 @@ loan_data_inputs_train, loan_data_inputs_test, loan_data_targets_train, loan_dat
 print('loan_data_inputs_train.shape = ' + str(loan_data_inputs_train.shape))
 print('loan_data_inputs_test.shape = ' + str(loan_data_inputs_test.shape))
 
+# delete unused df
+del loan_data
+del loan_data_2007_2014
+del loan_data_2015
+del loan_data_dummies
 
-#-----------------------------------------
-# Data Preparation: load Training data: loan_data_inputs_train, loan_data_targets_train
-# create df for preprocessing.  calculate WoE and IV   / # REF: Section 5, video 26
-
-# step 1) run using: set a) train set and last part and save to csv
-
-# a) train set
-df_inputs_prepr = loan_data_inputs_train
-df_targets_prep = loan_data_targets_train
-
-# b) test set
-# df_inputs_prepr = loan_data_inputs_test
-# df_targets_prep = loan_data_targets_test
-#-----------------------------------------
-
-#---------------
-# Class test
-
-import importlib
-import b02_pd_model_class as pddf
-# importlib.reload(pddf)
-
-d = pddf.PdDataframe(loan_data)
-# d.columns
-# d.shape
-# d.info()
-# d['dti']
-d.sum_column('dti')
-
-# d.groupby_sum('addr_state','annual_inc','mean')
-# del d
-
-#---------------
-# Class test woe_discrete
-
-# ---- df1_grade : no combining needed ---
-df_temp = d.woe_discrete('grade',df_targets_prep)
-# plot_by_woe(df_temp)
-
+# Save pe-processed data as CSV for modelling
+'''
+loan_data_inputs_train.to_csv('data/loan_data_inputs_train.csv')
+loan_data_targets_train.to_csv('data/loan_data_targets_train.csv')
+loan_data_inputs_test.to_csv('data/loan_data_inputs_test.csv')
+loan_data_targets_test.to_csv('data/loan_data_targets_test.csv')
+print('loan_data_inputs/targets - train/test to csv')
+'''
