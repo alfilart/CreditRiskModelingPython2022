@@ -7,30 +7,30 @@ import pandas as pd
 # ***********************************************************
 # Import Data
 # ***********************************************************
-loan_data_preprocessed_backup = pd.read_csv('loan_data_2007_2014_preprocessed.csv')
+loan_data_preprocessed_backup = pd.read_csv('data/loan_data_2007_2014_preprocessed_sec11.csv', index_col=0, low_memory=False)
 
 # ***********************************************************
 # Explore Data
 # ***********************************************************
 loan_data_preprocessed = loan_data_preprocessed_backup.copy()
 
-loan_data_preprocessed.columns.values
+# loan_data_preprocessed.columns.values
 # Displays all column names.
 
-loan_data_preprocessed.head()
-
-loan_data_preprocessed.tail()
+# loan_data_preprocessed.head()
+# loan_data_preprocessed.tail()
 
 loan_data_defaults = loan_data_preprocessed[
     loan_data_preprocessed['loan_status'].isin(['Charged Off', 'Does not meet the credit policy. Status:Charged Off'])]
 # Here we take only the accounts that were charged-off (written-off).
 
-loan_data_defaults.shape
+# loan_data_defaults.shape
 
 pd.options.display.max_rows = None
 # Sets the pandas dataframe options to display all columns/ rows.
 
-loan_data_defaults.isnull().sum()
+# dfx = loan_data_defaults.isnull().sum()
+
 # ***********************************************************
 # Independent Variables
 # ***********************************************************
@@ -50,14 +50,14 @@ loan_data_defaults['recovery_rate'] = loan_data_defaults['recoveries'] / loan_da
 # We calculate the dependent variable for the LGD model: recovery rate.
 # It is the ratio of recoveries and funded amount.
 
-loan_data_defaults['recovery_rate'].describe()
+# loan_data_defaults['recovery_rate'].describe()
 # Shows some descriptive statisics for the values of a column.
 
 loan_data_defaults['recovery_rate'] = np.where(loan_data_defaults['recovery_rate'] > 1, 1,
                                                loan_data_defaults['recovery_rate'])
 loan_data_defaults['recovery_rate'] = np.where(loan_data_defaults['recovery_rate'] < 0, 0,
                                                loan_data_defaults['recovery_rate'])
-# We set recovery rates that are greater than 1 to 1 and recovery rates that are less than 0 to 0.
+# Trim or Bound the data from 0 to 1. We set recovery rates that are greater than 1 to 1 and recovery rates that are less than 0 to 0.
 
 loan_data_defaults['recovery_rate'].describe()
 # Shows some descriptive statisics for the values of a column.
@@ -67,18 +67,17 @@ loan_data_defaults['CCF'] = (loan_data_defaults['funded_amnt'] - loan_data_defau
 # We calculate the dependent variable for the EAD model: credit conversion factor.
 # It is the ratio of the difference of the amount used at the moment of default to the total funded amount.
 
-loan_data_defaults['CCF'].describe()
+# loan_data_defaults['CCF'].describe()
 # Shows some descriptive statisics for the values of a column.
 
-loan_data_defaults.to_csv('loan_data_defaults.csv')
-# We save the data to a CSV file.
+
 
 # ***********************************************************
 # Explore Dependent Variables
 # ***********************************************************
+'''
 import matplotlib.pyplot as plt
 import seaborn as sns
-
 sns.set()
 
 plt.hist(loan_data_defaults['recovery_rate'], bins=100)
@@ -89,15 +88,34 @@ plt.hist(loan_data_defaults['recovery_rate'], bins=50)
 
 plt.hist(loan_data_defaults['CCF'], bins=100)
 # We plot a histogram of a variable with 100 bins.
+'''
 
 loan_data_defaults['recovery_rate_0_1'] = np.where(loan_data_defaults['recovery_rate'] == 0, 0, 1)
 # We create a new variable which is 0 if recovery rate is 0 and 1 otherwise.
 
-loan_data_defaults['recovery_rate_0_1']
+# loan_data_defaults['recovery_rate_0_1']
 
+# loan_data_defaults.to_csv('data\loan_data_defaults.csv')
+# We save the data to a CSV file.
+
+del loan_data_preprocessed_backup
+del loan_data_preprocessed
+
+# START HERE
 # ***********************************************************
 # LGD Model
 # ***********************************************************
+
+# Import Libraries
+import matplotlib as plt
+import seaborn as sns
+sns.set()
+import time # time the run
+from datetime import timedelta
+
+# load pre-rpocessed data
+# loan_data_defaults = pd.read_csv('data\loan_data_defaults.csv', index_col=0, header=0, low_memory=False)
+# loan_data_defaults.head()
 
 ## Splitting Data -----------------------------------------
 from sklearn.model_selection import train_test_split
@@ -175,7 +193,7 @@ lgd_inputs_stage_1_train = lgd_inputs_stage_1_train[features_all]
 lgd_inputs_stage_1_train = lgd_inputs_stage_1_train.drop(features_reference_cat, axis=1)
 # Here we remove the dummy variable reference categories.
 
-lgd_inputs_stage_1_train.isnull().sum()
+# lgd_inputs_stage_1_train.isnull().sum()
 # Check for missing values. We check whether the value of each row for each column is missing or not,
 # then sum accross columns.
 
@@ -197,67 +215,62 @@ class LogisticRegression_with_p_values:
     def fit(self, X, y):
         self.model.fit(X, y)
 
-        ## Get p-values for the fitted model##
+        #### Get p-values for the fitted model ####
         denom = (2.0 * (1.0 + np.cosh(self.model.decision_function(X))))
         denom = np.tile(denom, (X.shape[1], 1)).T
-        F_ij = np.dot((X / denom).T, X)  # Fisher Information Matrix
-        Cramer_Rao = np.linalg.inv(F_ij)  # Inverse Information Matrix
+        F_ij = np.dot((X / denom).T, X)  ## Fisher Information Matrix
+        Cramer_Rao = np.linalg.inv(F_ij)  ## Inverse Information Matrix
         sigma_estimates = np.sqrt(np.diagonal(Cramer_Rao))
-        z_scores = self.model.coef_[0] / sigma_estimates
-        z - score
-        for eaach model coefficient
-        p_values = [stat.norm.sf(abs(x)) * 2 for x in z_scores]  ## two tailed test for p-values
+        z_scores = self.model.coef_[0] / sigma_estimates  # z-score for eaach model coefficient
+        p_values = [stat.norm.sf(abs(x)) * 2 for x in z_scores]  ### two tailed test for p-values
 
         self.coef_ = self.model.coef_
         self.intercept_ = self.model.intercept_
-
-    self.z_scores = z_scores
-    self.p_values = p_values
+        self.p_values = p_values
 
 
-self.sigma_estimates = sigma_estimates
-self.F_ij = F_ij
-
-reg_lgd_st_1 = LogisticRegression_with_p_values()
+reg_lgd_st_1 = LogisticRegression_with_p_values(max_iter=1000, solver='lbfgs')
 # We create an instance of an object from the 'LogisticRegression' class.
+
+# --------------
+start_time = time.time()
+
 reg_lgd_st_1.fit(lgd_inputs_stage_1_train, lgd_targets_stage_1_train)
+
+elapsed_time_secs = time.time() - start_time
+msg = "Execution took: %s secs (Wall clock time)" % timedelta(seconds=round(elapsed_time_secs))
+print(msg)
 # Estimates the coefficients of the object from the 'LogisticRegression' class
 # with inputs (independent variables) contained in the first dataframe
 # and targets (dependent variables) contained in the second dataframe.
 
+# --------------
 feature_name = lgd_inputs_stage_1_train.columns.values
 # Stores the names of the columns of a dataframe in a variable.
 
-summary_table = pd.DataFrame(columns=['Feature name'], data=feature_name)
+summary_table_lgd_st_1 = pd.DataFrame(columns=['Feature name'], data=feature_name)
 # Creates a dataframe with a column titled 'Feature name' and row values contained in the 'feature_name' variable.
-summary_table['Coefficients'] = np.transpose(reg_lgd_st_1.coef_)
+summary_table_lgd_st_1['Coefficients'] = np.transpose(reg_lgd_st_1.coef_)
 # Creates a new column in the dataframe, called 'Coefficients',
 # with row values the transposed coefficients from the 'LogisticRegression' object.
-summary_table.index = summary_table.index + 1
+summary_table_lgd_st_1.index = summary_table_lgd_st_1.index + 1
 # Increases the index of every row of the dataframe with 1.
-summary_table.loc[0] = ['Intercept', reg_lgd_st_1.intercept_[0]]
+summary_table_lgd_st_1.loc[0] = ['Intercept', reg_lgd_st_1.intercept_[0]]
 # Assigns values of the row with index 0 of the dataframe.
-summary_table = summary_table.sort_index()
+summary_table_lgd_st_1 = summary_table_lgd_st_1.sort_index()
 # Sorts the dataframe by index.
 p_values = reg_lgd_st_1.p_values
 # We take the result of the newly added method 'p_values' and store it in a variable 'p_values'.
 p_values = np.append(np.nan, np.array(p_values))
 # We add the value 'NaN' in the beginning of the variable with p-values.
-summary_table['p_values'] = p_values
+summary_table_lgd_st_1['p_values'] = p_values
 # In the 'summary_table' dataframe, we add a new column, called 'p_values', containing the values from the 'p_values' variable.
-summary_table
+# summary_table_lgd_st_1
 
-summary_table = pd.DataFrame(columns=['Feature name'], data=feature_name)
-summary_table['Coefficients'] = np.transpose(reg_lgd_st_1.coef_)
-summary_table.index = summary_table.index + 1
-summary_table.loc[0] = ['Intercept', reg_lgd_st_1.intercept_[0]]
-summary_table = summary_table.sort_index()
-p_values = reg_lgd_st_1.p_values
-p_values = np.append(np.nan, np.array(p_values))
-summary_table['p_values'] = p_values
-summary_table
+# ***********************************************************
+## Testing and Predict with the Model -----------------------------------------
+# ***********************************************************
 
-## Testing the Model -----------------------------------------
 lgd_inputs_stage_1_test = lgd_inputs_stage_1_test[features_all]
 # Here we keep only the variables we need for the model.
 
@@ -268,13 +281,13 @@ y_hat_test_lgd_stage_1 = reg_lgd_st_1.model.predict(lgd_inputs_stage_1_test)
 # Calculates the predicted values for the dependent variable (targets)
 # based on the values of the independent variables (inputs) supplied as an argument.
 
-y_hat_test_lgd_stage_1
+# y_hat_test_lgd_stage_1
 
 y_hat_test_proba_lgd_stage_1 = reg_lgd_st_1.model.predict_proba(lgd_inputs_stage_1_test)
 # Calculates the predicted probability values for the dependent variable (targets)
 # based on the values of the independent variables (inputs) supplied as an argument.
 
-y_hat_test_proba_lgd_stage_1
+# y_hat_test_proba_lgd_stage_1
 # This is an array of arrays of predicted class probabilities for all classes.
 # In this case, the first value of every sub-array is the probability for the observation to belong to the first class, i.e. 0,
 # and the second value is the probability for the observation to belong to the first class, i.e. 1.
@@ -284,7 +297,7 @@ y_hat_test_proba_lgd_stage_1 = y_hat_test_proba_lgd_stage_1[:][:, 1]
 # that is, the second element.
 # In other words, we take only the probabilities for being 1.
 
-y_hat_test_proba_lgd_stage_1
+# y_hat_test_proba_lgd_stage_1
 
 lgd_targets_stage_1_test_temp = lgd_targets_stage_1_test
 
@@ -293,17 +306,66 @@ lgd_targets_stage_1_test_temp.reset_index(drop=True, inplace=True)
 
 df_actual_predicted_probs = pd.concat([lgd_targets_stage_1_test_temp, pd.DataFrame(y_hat_test_proba_lgd_stage_1)],
                                       axis=1)
-# Concatenates two dataframes.
+# Concatenates two dataframes. The actual observations and the predicted y hat probabilities
 
 df_actual_predicted_probs.columns = ['lgd_targets_stage_1_test', 'y_hat_test_proba_lgd_stage_1']
 
 df_actual_predicted_probs.index = lgd_inputs_stage_1_test.index
 # Makes the index of one dataframe equal to the index of another dataframe.
 
-df_actual_predicted_probs.head()
+# df_actual_predicted_probs.head()
+
+from sklearn.metrics import roc_curve, roc_auc_score
+
+fpr, tpr, thresholds = roc_curve(df_actual_predicted_probs['lgd_targets_stage_1_test'],
+                                 df_actual_predicted_probs['y_hat_test_proba_lgd_stage_1'])
+# Returns the Receiver Operating Characteristic (ROC) Curve from a set of actual values and their predicted probabilities.
+# As a result, we get three arrays: the false positive rates, the true positive rates, and the thresholds.
+# we store each of the three arrays in a separate variable.
+
+# --------------------------------------------
+# Get the optimal threshold using the G-mean method
+# --------------------------------------------
+# Calculate the G-mean and store as array
+gmean = np.sqrt(tpr * (1 - fpr))
+
+# Find the optimal threshold. Where the gmean is maximum
+# argmax= Returns the indices of the maximum values along an axis.
+index = np.argmax(gmean)
+thresholdOpt = round(thresholds[index], ndigits = 4)  # 0.8857
+gmeanOpt = round(gmean[index], ndigits = 4)
+fprOpt = round(fpr[index], ndigits = 4)
+tprOpt = round(tpr[index], ndigits = 4)
+print('Best Threshold: {} with G-Mean: {}'.format(thresholdOpt, gmeanOpt))
+print('FPR: {}, TPR: {}'.format(fprOpt, tprOpt))
+
+# to convert arrays into DF for further analysis
+df_roc_values = pd.DataFrame({'fpr': fpr,'tpr':  tpr, 'thresholds': thresholds})
+
+
+'''
+import matplotlib.pyplot as plt
+plt.plot(fpr, tpr)
+# We plot the false positive rate along the x-axis and the true positive rate along the y-axis,
+# thus plotting the ROC curve.
+plt.plot(fpr, fpr, linestyle='--', color='k')
+# We plot a seconary diagonal line, with dashed line style and black color.
+plt.xlabel('False positive rate')
+# We name the x-axis "False positive rate".
+plt.ylabel('True positive rate')
+# We name the x-axis "True positive rate".
+plt.title('ROC curve')
+# We name the graph "ROC curve".
+'''
+
+AUROC = roc_auc_score(df_actual_predicted_probs['lgd_targets_stage_1_test'], df_actual_predicted_probs['y_hat_test_proba_lgd_stage_1'])
+# Calculates the Area Under the Receiver Operating Characteristic Curve (AUROC)
+# from a set of actual values and their predicted probabilities.
+AUROC
+
 
 ## Estimating the Аccuracy of the Мodel -----------------------------------------
-tr = 0.5
+tr = 0.5556
 # We create a new column with an indicator,
 # where every observation that has predicted probability greater than the threshold has a value of 1,
 # and every observation that has predicted probability lower than the threshold has a value of 0.
@@ -327,43 +389,23 @@ pd.crosstab(df_actual_predicted_probs['lgd_targets_stage_1_test'], df_actual_pre
                         colnames=['Predicted']) / df_actual_predicted_probs.shape[0]).iloc[1, 1]
 # Here we calculate Accuracy of the model, which is the sum of the diagonal rates.
 
-from sklearn.metrics import roc_curve, roc_auc_score
 
-fpr, tpr, thresholds = roc_curve(df_actual_predicted_probs['lgd_targets_stage_1_test'],
-                                 df_actual_predicted_probs['y_hat_test_proba_lgd_stage_1'])
-# Returns the Receiver Operating Characteristic (ROC) Curve from a set of actual values and their predicted probabilities.
-# As a result, we get three arrays: the false positive rates, the true positive rates, and the thresholds.
-# we store each of the three arrays in a separate variable.
-
-plt.plot(fpr, tpr)
-# We plot the false positive rate along the x-axis and the true positive rate along the y-axis,
-# thus plotting the ROC curve.
-plt.plot(fpr, fpr, linestyle='--', color='k')
-# We plot a seconary diagonal line, with dashed line style and black color.
-plt.xlabel('False positive rate')
-# We name the x-axis "False positive rate".
-plt.ylabel('True positive rate')
-# We name the x-axis "True positive rate".
-plt.title('ROC curve')
-# We name the graph "ROC curve".
-
-AUROC = roc_auc_score(df_actual_predicted_probs['lgd_targets_stage_1_test'],
-                      df_actual_predicted_probs['y_hat_test_proba_lgd_stage_1'])
-# Calculates the Area Under the Receiver Operating Characteristic Curve (AUROC)
-# from a set of actual values and their predicted probabilities.
-AUROC
 
 ## Saving the Model -----------------------------------------
 import pickle
 
-pickle.dump(reg_lgd_st_1, open('lgd_model_stage_1.sav', 'wb'))
+pickle.dump(reg_lgd_st_1, open('data\lgd_model_stage_1.sav', 'wb'))
 # Here we export our model to a 'SAV' file with file name 'lgd_model_stage_1.sav'.
 
-
+# ***************************************************************************
 ## Stage 2 – Linear Regression -----------------------------------------
 lgd_stage_2_data = loan_data_defaults[loan_data_defaults['recovery_rate_0_1'] == 1]
 # Here we take only rows where the original recovery rate variable is greater than one,
 # i.e. where the indicator variable we created is equal to 1.
+# ***************************************************************************
+
+## Splitting Data -----------------------------------------
+from sklearn.model_selection import train_test_split
 
 # LGD model stage 2 datasets: how much more than 0 is the recovery rate
 lgd_inputs_stage_2_train, lgd_inputs_stage_2_test, lgd_targets_stage_2_train, lgd_targets_stage_2_test = train_test_split(
@@ -396,11 +438,14 @@ class LinearRegression(linear_model.LinearRegression):
     in X.
     """
 
-    nothing
-    changes in __init__
+# Fix for AttributeError: 'LinearRegression' object has no attribute 'positive'
+# https://365datascience.com/question/linearregression-object-has-no-attribute-positive/
 
+    # nothing changes in __init__
     def __init__(self, fit_intercept=True, normalize=False, copy_X=True,
                  n_jobs=1):
+        # Fix for AttributeError: 'LinearRegression' object has no attribute 'positive'
+        super().__init__(fit_intercept=fit_intercept, normalize=normalize, copy_X=copy_X, n_jobs=n_jobs)
         self.fit_intercept = fit_intercept
         self.normalize = normalize
         self.copy_X = copy_X
@@ -409,45 +454,14 @@ class LinearRegression(linear_model.LinearRegression):
     def fit(self, X, y, n_jobs=1):
         self = super(LinearRegression, self).fit(X, y, n_jobs)
 
-        Calculate
-        SSE(sum
-        of
-        squared
-        errors)
-        and SE(standard
-        error)
+        # Calculate SSE (sum of squared errors)
+        # and SE (standard error)
         sse = np.sum((self.predict(X) - y) ** 2, axis=0) / float(X.shape[0] - X.shape[1])
         se = np.array([np.sqrt(np.diagonal(sse * np.linalg.inv(np.dot(X.T, X))))])
 
-        compute
-        the
-        t - statistic
-        for each feature
-            self.t = self.coef_ / se
-        find
-        the
-        p - value
-        for each feature
-            self.p = np.squeeze(2 * (1 - stat.t.cdf(np.abs(self.t), y.shape[0] - X.shape[1])))
-        return self
-
-
-import scipy.stats as stat
-
-
-class LinearRegression(linear_model.LinearRegression):
-    def __init__(self, fit_intercept=True, normalize=False, copy_X=True,
-                 n_jobs=1):
-        self.fit_intercept = fit_intercept
-        self.normalize = normalize
-        self.copy_X = copy_X
-        self.n_jobs = n_jobs
-
-    def fit(self, X, y, n_jobs=1):
-        self = super(LinearRegression, self).fit(X, y, n_jobs)
-        sse = np.sum((self.predict(X) - y) ** 2, axis=0) / float(X.shape[0] - X.shape[1])
-        se = np.array([np.sqrt(np.diagonal(sse * np.linalg.inv(np.dot(X.T, X))))])
+        # compute the t-statistic for each feature
         self.t = self.coef_ / se
+        # find the p-value for each feature
         self.p = np.squeeze(2 * (1 - stat.t.cdf(np.abs(self.t), y.shape[0] - X.shape[1])))
         return self
 
@@ -458,9 +472,18 @@ lgd_inputs_stage_2_train = lgd_inputs_stage_2_train[features_all]
 lgd_inputs_stage_2_train = lgd_inputs_stage_2_train.drop(features_reference_cat, axis=1)
 # Here we remove the dummy variable reference categories.
 
-reg_lgd_st_2 = LinearRegression()
 # We create an instance of an object from the 'LogisticRegression' class.
+reg_lgd_st_2 = LinearRegression()
+
+#run fit
+# start_time = time.time()
+
 reg_lgd_st_2.fit(lgd_inputs_stage_2_train, lgd_targets_stage_2_train)
+
+# elapsed_time_secs = time.time() - start_time
+# msg = "reg2.fit - Execution took: %s secs (Wall clock time)" % timedelta(seconds=round(elapsed_time_secs))
+# print(msg)
+
 # Estimates the coefficients of the object from the 'LogisticRegression' class
 # with inputs (independent variables) contained in the first dataframe
 # and targets (dependent variables) contained in the second dataframe.
@@ -468,43 +491,35 @@ reg_lgd_st_2.fit(lgd_inputs_stage_2_train, lgd_targets_stage_2_train)
 feature_name = lgd_inputs_stage_2_train.columns.values
 # Stores the names of the columns of a dataframe in a variable.
 
-summary_table = pd.DataFrame(columns=['Feature name'], data=feature_name)
+summary_table_lgd_st_2 = pd.DataFrame(columns=['Feature name'], data=feature_name)
 # Creates a dataframe with a column titled 'Feature name' and row values contained in the 'feature_name' variable.
-summary_table['Coefficients'] = np.transpose(reg_lgd_st_2.coef_)
+summary_table_lgd_st_2['Coefficients'] = np.transpose(reg_lgd_st_2.coef_)
 # Creates a new column in the dataframe, called 'Coefficients',
 # with row values the transposed coefficients from the 'LogisticRegression' object.
-summary_table.index = summary_table.index + 1
+summary_table_lgd_st_2.index = summary_table_lgd_st_2.index + 1
 # Increases the index of every row of the dataframe with 1.
-summary_table.loc[0] = ['Intercept', reg_lgd_st_2.intercept_]
+summary_table_lgd_st_2.loc[0] = ['Intercept', reg_lgd_st_2.intercept_]
 # Assigns values of the row with index 0 of the dataframe.
-summary_table = summary_table.sort_index()
+summary_table_lgd_st_2 = summary_table_lgd_st_2.sort_index()
 # Sorts the dataframe by index.
 p_values = reg_lgd_st_2.p
 # We take the result of the newly added method 'p_values' and store it in a variable 'p_values'.
 p_values = np.append(np.nan, np.array(p_values))
 # We add the value 'NaN' in the beginning of the variable with p-values.
-summary_table['p_values'] = p_values.round(3)
-# In the 'summary_table' dataframe, we add a new column, called 'p_values', containing the values from the 'p_values' variable.
-summary_table
+summary_table_lgd_st_2['p_values'] = p_values.round(3)
+# In the 'summary_table_lgd_st_2' dataframe, we add a new column, called 'p_values', containing the values from the 'p_values' variable.
+# summary_table_lgd_st_2
 
-summary_table = pd.DataFrame(columns=['Feature name'], data=feature_name)
-summary_table['Coefficients'] = np.transpose(reg_lgd_st_2.coef_)
-summary_table.index = summary_table.index + 1
-summary_table.loc[0] = ['Intercept', reg_lgd_st_2.intercept_]
-summary_table = summary_table.sort_index()
-p_values = reg_lgd_st_2.p
-p_values = np.append(np.nan, np.array(p_values))
-summary_table['p_values'] = p_values.round(3)
-summary_table
 
-## Stage 2 – Linear Regression Evaluation -----------------------------------------
+
+## Stage 2 – Linear Regression Evaluation/ Testing -----------------------------------------
 lgd_inputs_stage_2_test = lgd_inputs_stage_2_test[features_all]
 # Here we keep only the variables we need for the model.
 
 lgd_inputs_stage_2_test = lgd_inputs_stage_2_test.drop(features_reference_cat, axis=1)
 # Here we remove the dummy variable reference categories.
 
-lgd_inputs_stage_2_test.columns.values
+# lgd_inputs_stage_2_test.columns.values
 # Calculates the predicted values for the dependent variable (targets)
 # based on the values of the independent variables (inputs) supplied as an argument.
 
@@ -523,7 +538,7 @@ pd.concat([lgd_targets_stage_2_test_temp, pd.DataFrame(y_hat_test_lgd_stage_2)],
 sns.distplot(lgd_targets_stage_2_test - y_hat_test_lgd_stage_2)
 # We plot the distribution of the residuals.
 
-pickle.dump(reg_lgd_st_2, open('lgd_model_stage_2.sav', 'wb'))
+pickle.dump(reg_lgd_st_2, open('data\lgd_model_stage_2.sav', 'wb'))
 # Here we export our model to a 'SAV' file with file name 'lgd_model_stage_1.sav'.
 
 
@@ -574,34 +589,47 @@ reg_ead.fit(ead_inputs_train, ead_targets_train)
 
 feature_name = ead_inputs_train.columns.values
 
-summary_table = pd.DataFrame(columns=['Feature name'], data=feature_name)
+summary_table_ead = pd.DataFrame(columns=['Feature name'], data=feature_name)
 # Creates a dataframe with a column titled 'Feature name' and row values contained in the 'feature_name' variable.
-summary_table['Coefficients'] = np.transpose(reg_ead.coef_)
+summary_table_ead['Coefficients'] = np.transpose(reg_ead.coef_)
 # Creates a new column in the dataframe, called 'Coefficients',
 # with row values the transposed coefficients from the 'LogisticRegression' object.
-summary_table.index = summary_table.index + 1
+summary_table_ead.index = summary_table_ead.index + 1
 # Increases the index of every row of the dataframe with 1.
-summary_table.loc[0] = ['Intercept', reg_ead.intercept_]
+summary_table_ead.loc[0] = ['Intercept', reg_ead.intercept_]
 # Assigns values of the row with index 0 of the dataframe.
-summary_table = summary_table.sort_index()
+summary_table_ead = summary_table_ead.sort_index()
 # Sorts the dataframe by index.
 p_values = reg_lgd_st_2.p
 # We take the result of the newly added method 'p_values' and store it in a variable 'p_values'.
 p_values = np.append(np.nan, np.array(p_values))
 # We add the value 'NaN' in the beginning of the variable with p-values.
-summary_table['p_values'] = p_values
+summary_table_ead['p_values'] = p_values
 # In the 'summary_table' dataframe, we add a new column, called 'p_values', containing the values from the 'p_values' variable.
-summary_table
+summary_table_ead
 
-summary_table = pd.DataFrame(columns=['Feature name'], data=feature_name)
-summary_table['Coefficients'] = np.transpose(reg_ead.coef_)
-summary_table.index = summary_table.index + 1
-summary_table.loc[0] = ['Intercept', reg_ead.intercept_]
-summary_table = summary_table.sort_index()
-p_values = reg_ead.p
-p_values = np.append(np.nan, np.array(p_values))
-summary_table['p_values'] = p_values
-summary_table
+del AUROC
+del df_actual_predicted_probs
+del df_roc_values
+del lgd_inputs_stage_1_test
+del lgd_inputs_stage_1_train
+del lgd_inputs_stage_2_test
+del lgd_inputs_stage_2_train
+del lgd_stage_2_data
+del lgd_targets_stage_1_test
+del lgd_targets_stage_1_test_temp
+del lgd_targets_stage_1_train
+del lgd_targets_stage_2_test
+del lgd_targets_stage_2_test_temp
+del lgd_targets_stage_2_train
+del loan_data_defaults
+del p_values
+
+del y_hat_test_lgd
+del y_hat_test_lgd_stage_1
+del y_hat_test_lgd_stage_2
+del y_hat_test_lgd_stage_2_all
+del y_hat_test_proba_lgd_stage_1
 
 ## Model Validation -----------------------------------------
 ead_inputs_test = ead_inputs_test[features_all]
@@ -610,7 +638,7 @@ ead_inputs_test = ead_inputs_test[features_all]
 ead_inputs_test = ead_inputs_test.drop(features_reference_cat, axis=1)
 # Here we remove the dummy variable reference categories.
 
-ead_inputs_test.columns.values
+# ead_inputs_test.columns.values
 
 y_hat_test_ead = reg_ead.predict(ead_inputs_test)
 # Calculates the predicted values for the dependent variable (targets)
@@ -636,4 +664,15 @@ y_hat_test_ead = np.where(y_hat_test_ead > 1, 1, y_hat_test_ead)
 
 pd.DataFrame(y_hat_test_ead).describe()
 # Shows some descriptive statisics for the values of a column.
+
+sns.distplot(y_hat_test_ead)
+sns.boxplot(y_hat_test_ead, y_hat_test_ead.count())
+
+lst = list(y_hat_test_ead)
+np.quantile(y_hat_test_ead, [.25, .5, .75])
+df_y_hat_test_ead = pd.DataFrame(y_hat_test_ead)
+df_y_hat_test_ead.columns = ['values']
+
+df_y_hat_test_ead['quantile'] = pd.qcut(df_y_hat_test_ead['values'], 4, labels=False)
+sns.boxplot(df_y_hat_test_ead['values'],df_y_hat_test_ead['quantile'])
 

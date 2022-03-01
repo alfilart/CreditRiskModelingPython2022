@@ -554,7 +554,7 @@ print('Best Threshold: {} with G-Mean: {}'.format(thresholdOpt, gmeanOpt))
 print('FPR: {}, TPR: {}'.format(fprOpt, tprOpt))
 
 # to convert arrays into DF for further analysis
-# df_auroc_values = pd.DataFrame({'fpr': fpr,'tpr':  tpr, 'thresholds': thresholds})
+# df_roc_values = pd.DataFrame({'fpr': fpr,'tpr':  tpr, 'thresholds': thresholds})
 
 
 ## ----------------------------------------------------------------------

@@ -135,3 +135,7 @@ fabric.properties
 # **************************************************************************************
 /data/summary_table.xlsx
 /z99_temp1.py
+/data/01 Analysis temp.xlsx
+/001_BookMark.txt
+/data/lgd_model_stage_1.sav
+/data/lgd_model_stage_2.sav
