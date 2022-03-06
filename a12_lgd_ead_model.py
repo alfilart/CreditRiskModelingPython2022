@@ -676,3 +676,4 @@ df_y_hat_test_ead.columns = ['values']
 df_y_hat_test_ead['quantile'] = pd.qcut(df_y_hat_test_ead['values'], 4, labels=False)
 sns.boxplot(df_y_hat_test_ead['values'],df_y_hat_test_ead['quantile'])
 
+df_y_hat_test_ead
